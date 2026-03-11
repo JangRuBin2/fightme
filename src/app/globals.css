@@ -1,0 +1,163 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Disable pinch zoom for Toss WebView ── */
+html {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+}
+
+/* ── Safe area padding utilities ── */
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Scrollbar hide */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ── Base layer ── */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans antialiased;
+    overscroll-behavior-y: contain;
+  }
+
+  /* Prevent pull-to-refresh in WebView */
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+/* ── Component layer ── */
+@layer components {
+  /* Toss-style card */
+  .card {
+    @apply bg-white rounded-2xl p-5 shadow-sm border border-gray-100;
+  }
+
+  .card-pressed {
+    @apply active:scale-[0.98] active:bg-gray-50 transition-transform duration-150;
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-lg;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply w-full py-4 rounded-2xl bg-primary-400 text-white font-semibold text-body1
+           active:bg-primary-500 transition-colors duration-150
+           disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply w-full py-3 rounded-xl bg-gray-100 text-gray-700 font-medium text-body2
+           active:bg-gray-200 transition-colors duration-150;
+  }
+
+  /* Outline button */
+  .btn-outline {
+    @apply w-full py-3 rounded-xl border-2 border-primary-400 text-primary-400 font-medium text-body2
+           active:bg-primary-50 transition-colors duration-150;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl bg-gray-100 text-gray-900 text-body1
+           placeholder:text-gray-400 border border-transparent
+           focus:outline-none focus:border-primary-400 focus:bg-white
+           transition-colors duration-150;
+  }
+
+  /* Textarea field */
+  .textarea-field {
+    @apply w-full px-4 py-3 rounded-xl bg-gray-100 text-gray-900 text-body1
+           placeholder:text-gray-400 border border-transparent resize-none
+           focus:outline-none focus:border-primary-400 focus:bg-white
+           transition-colors duration-150;
+  }
+
+  /* Tab */
+  .tab {
+    @apply px-4 py-2 rounded-full text-body2 font-medium transition-colors duration-150;
+  }
+  .tab-active {
+    @apply bg-primary-400 text-white;
+  }
+  .tab-inactive {
+    @apply bg-gray-100 text-gray-500;
+  }
+
+  /* Judge card */
+  .judge-card {
+    @apply card card-pressed flex flex-col items-center gap-2 min-w-[140px] cursor-pointer
+           border-2 border-transparent;
+  }
+  .judge-card-selected {
+    @apply border-primary-400 bg-primary-50;
+  }
+
+  /* Gauge bar */
+  .gauge-bar {
+    @apply h-3 rounded-full overflow-hidden bg-gray-200;
+  }
+  .gauge-fill {
+    @apply h-full rounded-full;
+    animation: gauge-fill 1s ease-out forwards;
+    width: var(--gauge-width, 0%);
+  }
+  .gauge-fill-mine {
+    @apply bg-primary-400;
+  }
+  .gauge-fill-opponent {
+    @apply bg-accent-400;
+  }
+}
+
+/* ── Custom gauge animation for fault percentage ── */
+@keyframes gauge-fill {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--gauge-width, 0%);
+  }
+}
+
+@keyframes gauge-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.gauge-pulse {
+  animation: gauge-pulse 2s ease-in-out infinite;
+}

@@ -1,0 +1,239 @@
+{
+  "team": {
+    "name": "판결단 (PanGyulDan)",
+    "description": "FightMe '나랑 싸울래?' AI 연애재판소 개발팀. 판결(Judgment) + 단(Squad) = 판결을 내리는 개발 특공대.",
+    "project": "fightme",
+    "version": "1.0.0",
+    "mode": "inprocess",
+    "maxConcurrentTeammates": 4
+  },
+  "teammates": [
+    {
+      "id": "court-designer",
+      "name": "법정디자이너 (CourtDesigner)",
+      "role": "Frontend & UI Specialist",
+      "model": "sonnet",
+      "description": "사용자가 보는 법정의 모든 화면을 담당한다. 판결 결과 애니메이션, 판사 캐릭터 UI, 싸움 입력 폼 등 프론트엔드 전문가.",
+      "focus": [
+        "src/app/**/page.tsx",
+        "src/app/layout.tsx",
+        "src/app/globals.css",
+        "src/components/**",
+        "src/hooks/**",
+        "src/store/**",
+        "tailwind.config.ts"
+      ],
+      "responsibilities": [
+        "10개 페이지 (홈, 판결, 항소, 변호, 판사목록, 판사생성, 히스토리, 로그인, 설정)",
+        "싸움 입력 폼 (FightForm, 200자 제한, 문자 카운터)",
+        "판결 결과 애니메이션 (FaultGauge, VerdictCard, framer-motion)",
+        "판사 선택 UI (JudgeSelector, JudgeCard, 수평 스크롤)",
+        "하단 네비게이션 (BottomNav)",
+        "공유 이미지 Canvas 생성 (shareImage.ts)",
+        "Zustand 상태관리 (현재 싸움, 인증 상태)",
+        "반응형 모바일 디자인 (max-width 512px, 44px 터치 타겟)"
+      ],
+      "expertise": [
+        "Next.js 14 Static Export (모든 페이지 'use client')",
+        "Tailwind CSS (primary: #ff6b6b, accent: #f4a31a)",
+        "Framer Motion 애니메이션 (게이지, 페이지 전환)",
+        "Zustand + localStorage persist",
+        "Canvas API (공유 이미지 생성)",
+        "lucide-react 아이콘"
+      ],
+      "rules": [
+        "모든 페이지 'use client' 필수 (Static Export)",
+        "useSearchParams()는 반드시 Suspense로 래핑",
+        "동적 라우트 [id] 불가 → 쿼리 파라미터 사용 (/fight?id=xxx)",
+        "document.write() 절대 금지 (토스 SDK 브릿지 파괴)",
+        "html-to-image 사용 불가 → Canvas API 직접 사용",
+        "최소 44px 터치 타겟",
+        "Tailwind 클래스만 사용 (인라인 스타일 금지)"
+      ]
+    },
+    {
+      "id": "verdict-engine",
+      "name": "판결엔진 (VerdictEngine)",
+      "role": "Backend & AI Specialist",
+      "model": "sonnet",
+      "description": "AI 판결 생성, Edge Functions, DB를 총괄한다. Claude API로 판결/변호/항소 로직을 담당하는 백엔드 전문가.",
+      "focus": [
+        "supabase/functions/**",
+        "supabase/migrations/**",
+        "src/lib/supabase/**",
+        "src/lib/api/**",
+        "src/types/database.ts"
+      ],
+      "responsibilities": [
+        "AI 판결 생성 (fight-judge Edge Function, Claude API)",
+        "AI 변호사 생성 (fight-defense Edge Function)",
+        "항소 판결 (fight-appeal Edge Function)",
+        "판사 프롬프트 자동 생성 (judge-create Edge Function)",
+        "DB 스키마 관리 (6개 테이블, RLS 정책)",
+        "CORS 설정 (_shared/cors.ts)",
+        "Supabase 클라이언트 설정"
+      ],
+      "expertise": [
+        "Supabase Edge Functions (Deno runtime)",
+        "Claude API (Anthropic, claude-sonnet-4-20250514)",
+        "PostgreSQL + Row Level Security",
+        "AI 프롬프트 엔지니어링 (판사 캐릭터별 판결)",
+        "JSON 파싱 및 폴백 처리",
+        "Supabase Auth"
+      ],
+      "rules": [
+        "Edge Function에 반드시 handleCors() + getCorsHeaders() 사용",
+        "인증이 필요한 함수는 Authorization 헤더 검증 필수",
+        "Claude API 응답은 반드시 JSON 파싱 + 폴백 처리",
+        "my_fault_pct + opponent_fault_pct = 100 검증",
+        "RLS 활성화된 테이블에만 데이터 접근",
+        "ANTHROPIC_API_KEY는 Edge Function secrets에만 저장",
+        "에러 시 내부 정보 노출 금지"
+      ]
+    },
+    {
+      "id": "toss-bailiff",
+      "name": "토스집행관 (TossBailiff)",
+      "role": "Toss Platform Integration Specialist",
+      "model": "sonnet",
+      "description": "토스 앱인토스 SDK 연동, 인증, 결제, 광고를 전담한다. 집행관이 법원 명령을 집행하듯, 토스 플랫폼과의 연결을 담당한다.",
+      "focus": [
+        "src/lib/apps-in-toss/**",
+        "src/hooks/useAppsInToss.ts",
+        "src/hooks/useAppsInTossAds.ts",
+        "src/hooks/usePremium.ts",
+        "src/lib/tossShare.ts",
+        "src/types/apps-in-toss.ts",
+        "src/types/apps-in-toss-ads.ts",
+        "supabase/functions/auth-toss/**",
+        "supabase/functions/auth-toss-disconnect/**",
+        "supabase/functions/auth-delete-account/**",
+        "granite.config.ts",
+        "scripts/fix-root-html.mjs"
+      ],
+      "responsibilities": [
+        "Toss OAuth2 로그인 (appLogin → auth-toss Edge Function)",
+        "mTLS 인증서 관리 (fixPem, createHttpClient)",
+        "IAP 구독 결제 (createOneTimePurchaseOrder, pendingOrders)",
+        "보상형/전면 광고 (loadRewardedAd, showRewardedAd, 배너)",
+        "딥링크 처리 (DeepLinkHandler, fix-root-html.mjs)",
+        "공유 기능 (getTossShareLink, share, saveBase64Data)",
+        "SPA 라우팅 (fix-root-html.mjs, window.__FM_ACTUAL_PATH__)",
+        ".ait 빌드 및 배포 (granite.config.ts)"
+      ],
+      "expertise": [
+        "@apps-in-toss/web-framework SDK",
+        "OAuth 2.0 + mTLS",
+        "In-App Purchase 패턴 (event → Promise 래핑)",
+        "GoogleAdMob + TossAds 통합 SDK",
+        "SPA 라우팅 (history.replaceState)",
+        "Toss WebView 제약사항",
+        "Static Export + .ait 번들링"
+      ],
+      "rules": [
+        "event-based SDK는 반드시 Promise로 래핑",
+        "isSupported() 체크 후 SDK 호출",
+        "토스 환경 외에서는 graceful degradation",
+        "dynamic import로 토스 전용 모듈 로드",
+        "document.write() 절대 금지",
+        "<a download> 불가 → saveBase64Data() 사용",
+        "mTLS 인증서는 Base64 인코딩 + fixPem() 복원",
+        "테스트 광고 ID 사용 (개발 환경)"
+      ]
+    },
+    {
+      "id": "qa-prosecutor",
+      "name": "QA검사 (QAProsecutor)",
+      "role": "Quality Assurance & Build Specialist",
+      "model": "sonnet",
+      "description": "빌드 에러 수정, 보안 검토, 품질 관리를 담당한다. 검사가 사건을 꼼꼼히 검토하듯, 코드의 결함을 찾아 수정한다.",
+      "focus": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "tsconfig.json",
+        "next.config.mjs",
+        "package.json",
+        ".eslintrc.*"
+      ],
+      "responsibilities": [
+        "빌드 에러 수정 (pnpm build 통과 보장)",
+        "TypeScript 타입 안전성 검증",
+        "Static Export 호환성 검증 (동적 라우트, Suspense 등)",
+        "보안 리뷰 (XSS, 인젝션, API 키 노출 방지)",
+        "CORS 설정 검증",
+        "RLS 정책 검증",
+        "빌드 최적화 (번들 사이즈)"
+      ],
+      "expertise": [
+        "Next.js Static Export 빌드",
+        "TypeScript strict 모드",
+        "OWASP Top 10 보안 검토",
+        "토스 앱인토스 검수 체크리스트",
+        "Supabase RLS 정책",
+        "빌드 에러 최소 diff 수정"
+      ],
+      "rules": [
+        "빌드 에러는 최소 변경으로 수정 (리팩토링 금지)",
+        "useSearchParams()는 반드시 Suspense 래핑 확인",
+        "동적 라우트 [id] 감지 시 즉시 경고",
+        "API 키가 클라이언트에 노출되지 않는지 확인",
+        ".env.local에 민감 정보 포함 시 .gitignore 확인",
+        "빌드 후 fix-root-html.mjs 실행 확인"
+      ]
+    }
+  ],
+  "workflows": {
+    "new-feature": {
+      "description": "새 기능 개발 워크플로우",
+      "steps": [
+        { "teammates": ["court-designer", "verdict-engine"], "action": "프론트엔드 UI + 백엔드 Edge Function 병렬 구현", "parallel": true },
+        { "teammate": "toss-bailiff", "action": "토스 SDK 연동이 필요한 경우 통합", "conditional": true },
+        { "teammate": "qa-prosecutor", "action": "빌드 검증 + 보안 리뷰" }
+      ]
+    },
+    "api-connect": {
+      "description": "플레이스홀더를 실제 API로 연결하는 워크플로우",
+      "steps": [
+        { "teammate": "verdict-engine", "action": "Edge Function 확인/수정" },
+        { "teammate": "court-designer", "action": "프론트엔드 API 연결 (TODO 주석 교체)" },
+        { "teammate": "qa-prosecutor", "action": "빌드 검증 + 통합 테스트" }
+      ]
+    },
+    "bug-fix": {
+      "description": "버그 수정 워크플로우",
+      "steps": [
+        { "teammate": "qa-prosecutor", "action": "버그 재현 및 원인 분석" },
+        { "teammate": "auto", "action": "도메인에 맞는 팀원이 수정" },
+        { "teammate": "qa-prosecutor", "action": "빌드 검증 + 회귀 확인" }
+      ]
+    },
+    "code-review": {
+      "description": "코드 리뷰 워크플로우 (병렬 다중 관점)",
+      "steps": [
+        {
+          "parallel": true,
+          "teammates": ["court-designer", "verdict-engine", "toss-bailiff", "qa-prosecutor"],
+          "action": "각 팀원이 자기 도메인 관점에서 리뷰"
+        }
+      ]
+    },
+    "release": {
+      "description": "릴리즈 준비 (토스 콘솔 업로드 전)",
+      "steps": [
+        { "teammate": "qa-prosecutor", "action": "전체 빌드 + 보안 감사" },
+        { "teammate": "toss-bailiff", "action": "토스 검수 체크리스트 확인 + .ait 빌드" },
+        { "teammate": "court-designer", "action": "UI/UX 최종 확인" }
+      ]
+    }
+  },
+  "communication": {
+    "handoff_protocol": "팀원이 다른 팀원 도메인에 영향을 주는 작업 완료 시, (1) 변경 사항, (2) 수정 파일, (3) 다음 팀원이 할 일을 인수인계 요약으로 전달.",
+    "conflict_resolution": "같은 파일을 두 팀원이 수정해야 할 경우, 도메인 소유자가 우선. 공유 파일(types, store)은 오케스트레이터를 통해 조율.",
+    "shared_context": [
+      "src/types/database.ts",
+      "src/store/useStore.ts",
+      "src/lib/supabase/client.ts",
+      "CLAUDE.md"
+    ]
+  }
+}

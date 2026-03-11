@@ -1,0 +1,82 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface CurrentFight {
+  userClaim: string;
+  opponentClaim: string;
+  judgeId: string | null;
+}
+
+interface AppState {
+  // Auth
+  userId: string | null;
+  nickname: string | null;
+  isLoggedIn: boolean;
+  setAuth: (userId: string, nickname: string) => void;
+  clearAuth: () => void;
+
+  // Tokens
+  tokenBalance: number;
+  setTokenBalance: (balance: number) => void;
+  adjustTokens: (delta: number) => void;
+
+  // Current fight in progress
+  currentFight: CurrentFight;
+  setUserClaim: (claim: string) => void;
+  setOpponentClaim: (claim: string) => void;
+  setJudgeId: (id: string) => void;
+  resetFight: () => void;
+}
+
+const initialFight: CurrentFight = {
+  userClaim: '',
+  opponentClaim: '',
+  judgeId: null,
+};
+
+export const useStore = create<AppState>()(
+  persist(
+    (set) => ({
+      // Auth
+      userId: null,
+      nickname: null,
+      isLoggedIn: false,
+      setAuth: (userId, nickname) =>
+        set({ userId, nickname, isLoggedIn: true }),
+      clearAuth: () =>
+        set({ userId: null, nickname: null, isLoggedIn: false, tokenBalance: 0 }),
+
+      // Tokens
+      tokenBalance: 0,
+      setTokenBalance: (balance) => set({ tokenBalance: balance }),
+      adjustTokens: (delta) =>
+        set((state) => ({ tokenBalance: Math.max(0, state.tokenBalance + delta) })),
+
+      // Current fight in progress
+      currentFight: { ...initialFight },
+      setUserClaim: (claim) =>
+        set((state) => ({
+          currentFight: { ...state.currentFight, userClaim: claim },
+        })),
+      setOpponentClaim: (claim) =>
+        set((state) => ({
+          currentFight: { ...state.currentFight, opponentClaim: claim },
+        })),
+      setJudgeId: (id) =>
+        set((state) => ({
+          currentFight: { ...state.currentFight, judgeId: id },
+        })),
+      resetFight: () =>
+        set({ currentFight: { ...initialFight } }),
+    }),
+    {
+      name: 'fightme-storage',
+      partialize: (state) => ({
+        userId: state.userId,
+        nickname: state.nickname,
+        isLoggedIn: state.isLoggedIn,
+        tokenBalance: state.tokenBalance,
+      }),
+    }
+  )
+);
