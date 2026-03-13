@@ -1,6 +1,7 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { spendTokens } from '../_shared/tokens.ts';
+import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
 
 function buildAppealUserPrompt(
@@ -35,40 +36,9 @@ function buildAppealUserPrompt(
   return prompt;
 }
 
-async function callClaude(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Claude API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content?.[0]?.text;
-
-  if (!content) {
-    throw new Error('Empty response from Claude API');
-  }
-
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to parse JSON from Claude response');
-  }
-
-  return JSON.parse(jsonMatch[0]) as JudgmentResponse;
+async function getJudgment(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
+  const text = await callGemini({ systemPrompt, userPrompt, maxTokens: 1024 });
+  return extractJson<JudgmentResponse>(text);
 }
 
 Deno.serve(async (req) => {
@@ -152,7 +122,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Call Claude API for appeal
+    // Call Gemini API for appeal
     const userPrompt = buildAppealUserPrompt(
       judge,
       fight.user_claim,
@@ -160,7 +130,7 @@ Deno.serve(async (req) => {
       fight,
       fight.defense
     );
-    const judgment = await callClaude(judge.prompt, userPrompt);
+    const judgment = await getJudgment(judge.prompt, userPrompt);
 
     // Update fight directly with new verdict
     const { data: updatedFight, error: updateError } = await supabaseAdmin

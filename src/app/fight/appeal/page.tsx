@@ -107,7 +107,7 @@ function AppealContent() {
 
       {/* Original Verdict Summary */}
       {fight.user_fault !== null && (
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl p-5 shadow-sm mb-5">
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="card mb-5">
           <h3 className="text-body2 font-medium text-gray-500 mb-3">기존 판결 요약</h3>
           <div className="flex items-center gap-4 mb-3">
             <div className="flex-1 text-center">
@@ -131,24 +131,26 @@ function AppealContent() {
         <h3 className="text-body1 font-semibold text-gray-900 mb-3">판사 선택</h3>
 
         <button
-          className={`w-full bg-white rounded-2xl p-4 shadow-sm mb-3 text-left ${keepSameJudge ? 'ring-2 ring-primary-400 bg-primary-50' : ''}`}
+          className={`w-full rounded-2xl p-4 shadow-sm mb-3 text-left border ${keepSameJudge ? 'ring-2 ring-primary-400 bg-primary-50 border-primary-400' : 'border-gray-200'}`}
+          style={{ backgroundColor: keepSameJudge ? undefined : 'var(--color-card)' }}
           onClick={() => { setKeepSameJudge(true); setSelectedJudge(fight.judge_id); }}
         >
           <div className="flex items-center gap-3">
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${keepSameJudge ? 'border-primary-400 bg-primary-400' : 'border-gray-300'}`}>
-              {keepSameJudge && <div className="w-2 h-2 rounded-full bg-white" />}
+              {keepSameJudge && <div className="w-2 h-2 rounded-full bg-gray-50" />}
             </div>
             <span className="text-body2 font-medium text-gray-800">같은 판사로 다시 판결</span>
           </div>
         </button>
 
         <button
-          className={`w-full bg-white rounded-2xl p-4 shadow-sm mb-3 text-left ${!keepSameJudge ? 'ring-2 ring-primary-400 bg-primary-50' : ''}`}
+          className={`w-full rounded-2xl p-4 shadow-sm mb-3 text-left border ${!keepSameJudge ? 'ring-2 ring-primary-400 bg-primary-50 border-primary-400' : 'border-gray-200'}`}
+          style={{ backgroundColor: !keepSameJudge ? undefined : 'var(--color-card)' }}
           onClick={() => setKeepSameJudge(false)}
         >
           <div className="flex items-center gap-3">
             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${!keepSameJudge ? 'border-primary-400 bg-primary-400' : 'border-gray-300'}`}>
-              {!keepSameJudge && <div className="w-2 h-2 rounded-full bg-white" />}
+              {!keepSameJudge && <div className="w-2 h-2 rounded-full bg-gray-50" />}
             </div>
             <span className="text-body2 font-medium text-gray-800">다른 판사 선택</span>
           </div>

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+type ThemeId = 'warm' | 'dark-court' | 'neon-fight';
+
 interface CurrentFight {
   userClaim: string;
   opponentClaim: string;
@@ -19,6 +21,10 @@ interface AppState {
   tokenBalance: number;
   setTokenBalance: (balance: number) => void;
   adjustTokens: (delta: number) => void;
+
+  // Theme
+  theme: ThemeId;
+  setTheme: (theme: ThemeId) => void;
 
   // Current fight in progress
   currentFight: CurrentFight;
@@ -52,6 +58,10 @@ export const useStore = create<AppState>()(
       adjustTokens: (delta) =>
         set((state) => ({ tokenBalance: Math.max(0, state.tokenBalance + delta) })),
 
+      // Theme
+      theme: 'warm' as ThemeId,
+      setTheme: (theme) => set({ theme }),
+
       // Current fight in progress
       currentFight: { ...initialFight },
       setUserClaim: (claim) =>
@@ -76,6 +86,7 @@ export const useStore = create<AppState>()(
         nickname: state.nickname,
         isLoggedIn: state.isLoggedIn,
         tokenBalance: state.tokenBalance,
+        theme: state.theme,
       }),
     }
   )

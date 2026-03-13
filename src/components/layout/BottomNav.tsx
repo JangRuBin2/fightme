@@ -1,14 +1,13 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Gavel, History, Settings } from 'lucide-react';
+import { Home, Gavel, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const NAV_ITEMS = [
   { label: '홈', icon: Home, path: '/' },
   { label: '판사', icon: Gavel, path: '/judges' },
-  { label: '기록', icon: History, path: '/history' },
-  { label: '설정', icon: Settings, path: '/settings' },
+  { label: 'MY', icon: User, path: '/my' },
 ] as const;
 
 export default function BottomNav() {
@@ -16,7 +15,7 @@ export default function BottomNav() {
   const router = useRouter();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-t border-gray-100 safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-lg border-t border-gray-100 safe-bottom" style={{ backgroundColor: 'var(--color-nav-bg)' }}>
       <div className="flex items-center justify-around h-14">
         {NAV_ITEMS.map(({ label, icon: Icon, path }) => {
           const isActive =

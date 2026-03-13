@@ -11,7 +11,7 @@ interface HeaderProps {
 
 export default function Header({ title, showBack = false, rightAction }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-100 safe-top">
+    <header className="sticky top-0 z-40 backdrop-blur-lg border-b border-gray-100 safe-top" style={{ backgroundColor: 'var(--color-nav-bg)' }}>
       <div className="flex items-center justify-between h-12 px-4">
         <div className="w-10 flex items-center">
           {showBack && <BackButton />}

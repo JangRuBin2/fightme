@@ -31,7 +31,8 @@ export default function AdModal({ onClose }: AdModalProps) {
       <motion.div
         initial={{ y: 100 }}
         animate={{ y: 0 }}
-        className="w-full max-w-lg bg-white rounded-t-3xl p-6 safe-bottom"
+        className="w-full max-w-lg rounded-t-3xl p-6 safe-bottom"
+        style={{ backgroundColor: 'var(--color-card)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -47,7 +48,7 @@ export default function AdModal({ onClose }: AdModalProps) {
             animate={{ scale: 1, opacity: 1 }}
             className="text-center py-8"
           >
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-3" />
+            <CheckCircle className="w-16 h-16 text-accent-500 mx-auto mb-3" />
             <p className="text-body1 font-semibold text-gray-900">토큰 3개 충전 완료!</p>
           </motion.div>
         ) : (

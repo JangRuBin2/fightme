@@ -19,23 +19,15 @@ Deno.serve(async (req) => {
 });
 ```
 
-## Claude API 호출 패턴
+## Gemini API 호출 패턴
 ```typescript
-const response = await fetch('https://api.anthropic.com/v1/messages', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
-    'anthropic-version': '2023-06-01',
-  },
-  body: JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  }),
-});
+import { callGemini, extractJson } from '../_shared/gemini.ts';
+
+// 공유 헬퍼 사용 (gemini-2.5-flash)
+const text = await callGemini({ systemPrompt, userPrompt, maxTokens: 1024 });
+const parsed = extractJson<MyResponseType>(text);
 // 반드시 JSON 파싱 + 폴백 처리
+// API 키: Deno.env.get('GOOGLE_AI_API_KEY')
 ```
 
 ## Toss SDK 래퍼 패턴

@@ -1,14 +1,24 @@
 'use client';
 
 import './globals.css';
+import { useEffect } from 'react';
+import { useStore } from '@/store/useStore';
+import HamburgerMenu from '@/components/layout/HamburgerMenu';
+import BottomNav from '@/components/layout/BottomNav';
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const theme = useStore((s) => s.theme);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
   return (
-    <html lang="ko">
+    <html lang="ko" data-theme={theme}>
       <head>
         <meta
           name="viewport"
@@ -22,9 +32,11 @@ export default function RootLayout({
         <meta property="og:type" content="website" />
       </head>
       <body>
-        <main className="min-h-screen safe-top safe-bottom">
+        <HamburgerMenu />
+        <main className="min-h-screen safe-top safe-bottom pb-16">
           {children}
         </main>
+        <BottomNav />
       </body>
     </html>
   );

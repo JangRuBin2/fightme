@@ -11,7 +11,7 @@
 - judges는 approved/default만 공개 읽기
 
 ## API 키
-- ANTHROPIC_API_KEY: Edge Function secrets에만 저장
+- GOOGLE_AI_API_KEY: Edge Function secrets에만 저장
 - NEXT_PUBLIC_ 접두사: 클라이언트 노출 가능한 것만
 - mTLS 인증서: Base64로 secrets에 저장
 

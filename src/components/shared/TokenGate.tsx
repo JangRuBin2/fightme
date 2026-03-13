@@ -50,7 +50,8 @@ export default function TokenGate({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="absolute inset-0 flex flex-col items-center justify-center
-                     bg-white/80 backdrop-blur-sm rounded-2xl"
+                     backdrop-blur-sm rounded-2xl"
+          style={{ backgroundColor: 'color-mix(in srgb, var(--color-card) 80%, transparent)' }}
         >
           <div className="text-center space-y-4 px-6">
             <div className="w-14 h-14 rounded-full bg-accent-100 flex items-center justify-center mx-auto">

@@ -1,5 +1,6 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
+import { callGemini, extractJson } from '../_shared/gemini.ts';
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
@@ -50,30 +51,8 @@ Deno.serve(async (req) => {
 반드시 아래 JSON 형식으로만 응답해.
 {"approved":true/false,"reason":"승인/거절 이유 50자 이내"}`;
 
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '',
-            'anthropic-version': '2023-06-01',
-          },
-          body: JSON.stringify({
-            model: 'claude-sonnet-4-20250514',
-            max_tokens: 256,
-            messages: [{ role: 'user', content: reviewPrompt }],
-          }),
-        });
-
-        if (!response.ok) continue;
-
-        const data = await response.json();
-        const content = data.content?.[0]?.text;
-        if (!content) continue;
-
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) continue;
-
-        const review = JSON.parse(jsonMatch[0]);
+        const text = await callGemini({ userPrompt: reviewPrompt, maxTokens: 256 });
+        const review = extractJson<{ approved: boolean; reason?: string }>(text);
 
         if (review.approved) {
           await supabaseAdmin

@@ -1,6 +1,7 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { spendTokens } from '../_shared/tokens.ts';
+import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { DefenseResponse } from '../_shared/types.ts';
 
 async function generateAIDefense(userClaim: string, opponentClaim: string): Promise<string> {
@@ -10,38 +11,8 @@ async function generateAIDefense(userClaim: string, opponentClaim: string): Prom
 반드시 아래 JSON 형식으로만 응답해.
 {"defense_text":"변론문 200자 이내, 설득력 있게"}`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Claude API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content?.[0]?.text;
-
-  if (!content) {
-    throw new Error('Empty response from Claude API');
-  }
-
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to parse JSON from Claude response');
-  }
-
-  const parsed = JSON.parse(jsonMatch[0]) as DefenseResponse;
+  const text = await callGemini({ userPrompt, maxTokens: 1024 });
+  const parsed = extractJson<DefenseResponse>(text);
   return parsed.defense_text;
 }
 

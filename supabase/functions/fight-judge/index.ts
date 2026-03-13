@@ -1,6 +1,7 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { spendTokens } from '../_shared/tokens.ts';
+import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
 
 function buildUserPrompt(
@@ -21,40 +22,9 @@ function buildUserPrompt(
 주의: user_fault + opponent_fault = 100. 캐릭터에 맞는 말투로 재미있게 판결해라.`;
 }
 
-async function callClaude(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Claude API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content?.[0]?.text;
-
-  if (!content) {
-    throw new Error('Empty response from Claude API');
-  }
-
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to parse JSON from Claude response');
-  }
-
-  const parsed = JSON.parse(jsonMatch[0]) as JudgmentResponse;
+async function getJudgment(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
+  const text = await callGemini({ systemPrompt, userPrompt, maxTokens: 1024 });
+  const parsed = extractJson<JudgmentResponse>(text);
 
   if (
     typeof parsed.user_fault !== 'number' ||
@@ -116,10 +86,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Call Claude API
+    // Call Gemini API
     const systemPrompt = judge.prompt;
     const userPrompt = buildUserPrompt(judge, user_claim, opponent_claim);
-    const judgment = await callClaude(systemPrompt, userPrompt);
+    const judgment = await getJudgment(systemPrompt, userPrompt);
 
     // Create fight record with verdict data merged
     const { data: fight, error: fightError } = await supabaseAdmin

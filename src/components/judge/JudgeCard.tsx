@@ -13,10 +13,10 @@ interface JudgeCardProps {
 const AVATAR_COLORS = [
   'bg-primary-200 text-primary-600',
   'bg-accent-200 text-accent-700',
-  'bg-blue-200 text-blue-600',
-  'bg-green-200 text-green-600',
-  'bg-purple-200 text-purple-600',
-  'bg-pink-200 text-pink-600',
+  'bg-primary-100 text-primary-500',
+  'bg-accent-100 text-accent-600',
+  'bg-gray-200 text-gray-700',
+  'bg-primary-300 text-primary-700',
 ];
 
 function getAvatarColor(id: string) {
@@ -55,9 +55,9 @@ export default function JudgeCard({ judge, onClick, selected = false }: JudgeCar
           {judge.name}
         </span>
         {!judge.is_user_created ? (
-          <Shield className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+          <Shield className="w-3.5 h-3.5 text-primary-400 flex-shrink-0" />
         ) : (
-          <Users className="w-3.5 h-3.5 text-purple-500 flex-shrink-0" />
+          <Users className="w-3.5 h-3.5 text-accent-500 flex-shrink-0" />
         )}
       </div>
 

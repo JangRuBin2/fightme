@@ -1,5 +1,6 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
+import { callGemini, extractJson } from '../_shared/gemini.ts';
 
 async function generateJudgePrompt(wizardData: {
   name: string;
@@ -23,38 +24,8 @@ Q6 (한마디): ${wizardData.q6}
 반드시 아래 JSON 형식으로만 응답해.
 {"prompt":"판사 시스템 프롬프트 150자 이내, 캐릭터의 판결 성향과 말투를 구체적으로 묘사","description":"판사 한줄 소개 30자 이내"}`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': Deno.env.get('ANTHROPIC_API_KEY') || '',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Claude API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  const content = data.content?.[0]?.text;
-
-  if (!content) {
-    throw new Error('Empty response from Claude API');
-  }
-
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Failed to parse JSON from Claude response');
-  }
-
-  return JSON.parse(jsonMatch[0]);
+  const text = await callGemini({ userPrompt, maxTokens: 512 });
+  return extractJson<{ prompt: string; description: string }>(text);
 }
 
 Deno.serve(async (req) => {

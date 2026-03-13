@@ -4,6 +4,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3000',
+  'https://partner.toss.im',
+  'https://apps-in-toss.toss.im',
+  'https://apps-in-toss-console.toss.im',
 ];
 
 function getAllowedOrigin(req: Request): string {

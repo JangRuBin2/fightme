@@ -145,7 +145,7 @@ function DefenseContent() {
       {/* AI Defense Tab */}
       {activeTab === 'ai' && (
         <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-4">
-          <div className="bg-white rounded-2xl p-5 shadow-sm text-center">
+          <div className="card text-center">
             <Bot className="w-12 h-12 text-primary-400 mx-auto mb-3" />
             <h3 className="text-body1 font-semibold text-gray-900 mb-1">AI 변호사</h3>
             <p className="text-body2 text-gray-500 mb-4">AI가 당신의 입장을 대신 변호해드립니다</p>
@@ -187,12 +187,12 @@ function DefenseContent() {
       {/* Self Defense Tab */}
       {activeTab === 'self' && (
         <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-4">
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
+          <div className="card">
             <PenLine className="w-8 h-8 text-gray-400 mb-3" />
             <h3 className="text-body1 font-semibold text-gray-900 mb-1">직접 변호</h3>
             <p className="text-body2 text-gray-500 mb-4">직접 추가 변론을 작성해주세요</p>
             <textarea
-              className="w-full h-36 p-4 rounded-xl bg-gray-50 border border-gray-200 text-body2 text-gray-900 placeholder:text-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary-400"
+              className="textarea-field h-36"
               placeholder="내가 왜 덜 잘못했는지 추가로 설명해주세요..."
               maxLength={300}
               value={selfDefense}

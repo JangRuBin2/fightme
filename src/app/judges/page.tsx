@@ -53,13 +53,13 @@ export default function JudgesPage() {
       {/* Sort Tabs */}
       <div className="flex gap-2 mb-5">
         <button
-          className={`text-caption px-3 py-1 rounded-full ${sortTab === 'score' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}
+          className={`text-caption px-3 py-1 rounded-full ${sortTab === 'score' ? 'bg-primary-400 text-white' : 'bg-gray-100 text-gray-600'}`}
           onClick={() => setSortTab('score')}
         >
           인기순
         </button>
         <button
-          className={`text-caption px-3 py-1 rounded-full ${sortTab === 'recent' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'}`}
+          className={`text-caption px-3 py-1 rounded-full ${sortTab === 'recent' ? 'bg-primary-400 text-white' : 'bg-gray-100 text-gray-600'}`}
           onClick={() => setSortTab('recent')}
         >
           최신순
@@ -86,8 +86,8 @@ export default function JudgesPage() {
               className="card card-pressed"
             >
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                  <span className="text-lg font-bold">{judge.name.charAt(0)}</span>
+                <div className="w-12 h-12 rounded-full bg-primary-100 flex-shrink-0 flex items-center justify-center">
+                  <span className="text-lg font-bold text-primary-400">{judge.name.charAt(0)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -95,9 +95,9 @@ export default function JudgesPage() {
                       {judge.name}
                     </h3>
                     {!judge.is_user_created ? (
-                      <Shield className="w-3.5 h-3.5 text-blue-500" />
+                      <Shield className="w-3.5 h-3.5 text-primary-400" />
                     ) : (
-                      <Users className="w-3.5 h-3.5 text-purple-500" />
+                      <Users className="w-3.5 h-3.5 text-accent-500" />
                     )}
                   </div>
                   {judge.description && (

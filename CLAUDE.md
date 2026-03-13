@@ -8,7 +8,7 @@
 - State: Zustand (localStorage persist)
 - Backend: Supabase Edge Functions (Deno)
 - DB: Supabase PostgreSQL (RLS)
-- AI: Claude API (Anthropic) - claude-sonnet-4-20250514
+- AI: Google Gemini API - gemini-2.5-flash
 - Platform: 토스 앱인토스 SDK (@apps-in-toss/web-framework)
 
 ## 핵심 규칙
@@ -17,6 +17,7 @@
 3. **모든 페이지 'use client'** - Static Export 필수
 4. **CORS 필수** - Edge Function에 getCorsHeaders() + handleCors() 사용
 5. **mTLS** - Toss API 호출 시 fixPem() + createHttpClient() 사용
+6. **테마 호환 필수** - `bg-white`/하드코딩 색상 금지, 시맨틱 컬러만 사용 (`.claude/rules/theming.md` 참조)
 
 ## 주요 명령어
 ```bash
