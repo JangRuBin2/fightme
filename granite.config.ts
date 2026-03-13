@@ -22,7 +22,7 @@ export default defineConfig({
     port: 3000,
     commands: {
       dev: 'next dev',
-      build: 'next build && node scripts/fix-root-html.mjs',
+      build: 'next build && node scripts/fix-root-html.mjs && node scripts/move-to-web.mjs',
     },
   },
   outdir: 'out',
