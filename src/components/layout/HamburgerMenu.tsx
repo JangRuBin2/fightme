@@ -46,11 +46,15 @@ export default function HamburgerMenu() {
 
   return (
     <>
-      {/* Hamburger Button - bottom right, above BottomNav */}
+      {/* Hamburger Button - top right, respects safe area */}
       <button
         onClick={() => setOpen(true)}
-        className="fixed bottom-[72px] right-4 z-50 w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform duration-150"
-        style={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-card-border)' }}
+        className="fixed right-4 z-50 w-10 h-10 rounded-full flex items-center justify-center shadow-md active:scale-95 transition-transform duration-150"
+        style={{
+          top: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
+          backgroundColor: 'var(--color-card)',
+          border: '1px solid var(--color-card-border)',
+        }}
         aria-label="메뉴 열기"
       >
         <Menu className="w-5 h-5 text-gray-700" />

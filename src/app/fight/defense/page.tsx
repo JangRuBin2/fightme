@@ -7,6 +7,7 @@ import { Bot, PenLine, Shield, Coins } from 'lucide-react';
 import AdModal from '@/components/shared/AdModal';
 import { getFight, submitDefense } from '@/lib/api/fights';
 import { useTokens } from '@/hooks/useTokens';
+import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
 import type { Fight } from '@/types/database';
 
 type DefenseTab = 'ai' | 'self';
@@ -55,11 +56,10 @@ function DefenseContent() {
       setAiGenerated(true);
       await refresh();
     } catch (err) {
-      const errObj = err as Record<string, unknown>;
-      if (errObj.code === 'INSUFFICIENT_TOKENS') {
+      if (isInsufficientTokens(err)) {
         setShowAdModal(true);
       } else {
-        setError(err instanceof Error ? err.message : '오류가 발생했습니다');
+        setError(getErrorMessage(err));
       }
     } finally {
       setIsSubmitting(false);
@@ -82,11 +82,10 @@ function DefenseContent() {
       await refresh();
       router.push(`/fight/appeal/?id=${fightId}`);
     } catch (err) {
-      const errObj = err as Record<string, unknown>;
-      if (errObj.code === 'INSUFFICIENT_TOKENS') {
+      if (isInsufficientTokens(err)) {
         setShowAdModal(true);
       } else {
-        setError(err instanceof Error ? err.message : '오류가 발생했습니다');
+        setError(getErrorMessage(err));
       }
     } finally {
       setIsSubmitting(false);
@@ -106,8 +105,8 @@ function DefenseContent() {
   }
 
   return (
-    <div className="px-5 pb-8">
-      <div className="pt-6 pb-4">
+    <div className="px-5 pb-24">
+      <div className="pt-16 pb-4">
         <h1 className="text-h2 text-gray-900">변호하기</h1>
         <p className="text-body2 text-gray-500 mt-1">추가 변론으로 판결을 뒤집어보세요</p>
       </div>

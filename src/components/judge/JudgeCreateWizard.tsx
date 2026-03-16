@@ -179,7 +179,7 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
                       className={`p-4 rounded-2xl border-2 text-left transition-colors ${
                         answers[questionIndex] === option.value
                           ? 'border-primary-400 bg-primary-50'
-                          : 'border-gray-200 bg-white active:bg-gray-50'
+                          : 'border-gray-200 bg-gray-50 active:bg-gray-100'
                       }`}
                     >
                       <span className="text-2xl mb-2 block">{option.emoji}</span>

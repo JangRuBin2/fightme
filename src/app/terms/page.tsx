@@ -55,8 +55,8 @@ export default function TermsPage() {
   const router = useRouter();
 
   return (
-    <div className="px-5 pb-8">
-      <div className="pt-6 pb-4">
+    <div className="px-5 pb-24">
+      <div className="pt-16 pb-4">
         <button
           className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
           onClick={() => router.back()}

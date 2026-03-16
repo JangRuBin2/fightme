@@ -73,9 +73,9 @@ export default function MyPage() {
   }
 
   return (
-    <div className="px-5 pb-8">
+    <div className="px-5 pb-24">
       {/* Header */}
-      <div className="pt-6 pb-4">
+      <div className="pt-16 pb-4">
         <h1 className="text-h2 text-gray-900">MY</h1>
       </div>
 

@@ -14,7 +14,7 @@ interface AppState {
   userId: string | null;
   nickname: string | null;
   isLoggedIn: boolean;
-  setAuth: (userId: string, nickname: string) => void;
+  setAuth: (userId: string, nickname: string | null) => void;
   clearAuth: () => void;
 
   // Tokens
@@ -87,6 +87,7 @@ export const useStore = create<AppState>()(
         isLoggedIn: state.isLoggedIn,
         tokenBalance: state.tokenBalance,
         theme: state.theme,
+        currentFight: state.currentFight,
       }),
     }
   )

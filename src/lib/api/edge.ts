@@ -1,9 +1,34 @@
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/client';
+import { useStore } from '@/store/useStore';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export async function callEdgeFunction<T = unknown>(
+function handleAuthFailure() {
+  useStore.getState().clearAuth();
+}
+
+interface EdgeError extends Error {
+  code?: string;
+  status?: number;
+}
+
+function createEdgeError(message: string, code?: string, status?: number): EdgeError {
+  const err = new Error(message) as EdgeError;
+  err.code = code;
+  err.status = status;
+  return err;
+}
+
+const edgeErrorSchema = z.object({
+  error: z.string().optional(),
+  code: z.string().optional(),
+}).passthrough();
+
+export async function callEdgeFunction<T>(
   functionName: string,
+  schema: z.ZodType<T>,
   options: {
     method?: string;
     body?: unknown;
@@ -12,12 +37,10 @@ export async function callEdgeFunction<T = unknown>(
   const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
 
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Unauthorized');
-
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
-    throw new Error('Unauthorized');
+    handleAuthFailure();
+    throw createEdgeError('로그인이 필요합니다', 'AUTH_REQUIRED', 401);
   }
 
   const response = await fetch(url, {
@@ -25,6 +48,7 @@ export async function callEdgeFunction<T = unknown>(
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
+      'apikey': SUPABASE_ANON_KEY,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
@@ -35,27 +59,36 @@ export async function callEdgeFunction<T = unknown>(
     let errorMessage = `Edge function error: ${response.status}`;
     let errorCode: string | undefined;
     try {
-      const error = JSON.parse(text);
-      errorMessage = error.error || errorMessage;
-      errorCode = error.code;
+      const parsed = edgeErrorSchema.safeParse(JSON.parse(text));
+      if (parsed.success) {
+        errorMessage = parsed.data.error || errorMessage;
+        errorCode = parsed.data.code;
+      }
     } catch {
       // Non-JSON error response
     }
-    const err = new Error(errorMessage);
-    (err as unknown as Record<string, unknown>).code = errorCode;
-    (err as unknown as Record<string, unknown>).status = response.status;
-    throw err;
+    if (response.status === 401) {
+      handleAuthFailure();
+    }
+    throw createEdgeError(errorMessage, errorCode, response.status);
   }
 
   try {
-    return JSON.parse(text) as T;
-  } catch {
-    throw new Error('Server returned an unexpected response. Please try again.');
+    const json: unknown = JSON.parse(text);
+    return schema.parse(json);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      throw createEdgeError(
+        `Invalid server response: ${err.issues.map((i) => i.message).join(', ')}`
+      );
+    }
+    throw createEdgeError('Server returned an unexpected response. Please try again.');
   }
 }
 
-export async function callPublicEdgeFunction<T = unknown>(
+export async function callPublicEdgeFunction<T>(
   functionName: string,
+  schema: z.ZodType<T>,
   options: {
     method?: string;
     body?: unknown;
@@ -67,6 +100,7 @@ export async function callPublicEdgeFunction<T = unknown>(
     method: options.method || 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
@@ -76,8 +110,10 @@ export async function callPublicEdgeFunction<T = unknown>(
   if (!response.ok) {
     let errorMessage = `Edge function error: ${response.status}`;
     try {
-      const error = JSON.parse(text);
-      errorMessage = error.error || errorMessage;
+      const parsed = edgeErrorSchema.safeParse(JSON.parse(text));
+      if (parsed.success) {
+        errorMessage = parsed.data.error || errorMessage;
+      }
     } catch {
       // Non-JSON error response
     }
@@ -85,8 +121,14 @@ export async function callPublicEdgeFunction<T = unknown>(
   }
 
   try {
-    return JSON.parse(text) as T;
-  } catch {
+    const json: unknown = JSON.parse(text);
+    return schema.parse(json);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      throw new Error(
+        `Invalid server response: ${err.issues.map((i) => i.message).join(', ')}`
+      );
+    }
     throw new Error('Server returned an unexpected response. Please try again.');
   }
 }

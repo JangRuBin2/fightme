@@ -9,6 +9,7 @@ import AdModal from '@/components/shared/AdModal';
 import { getFight, submitAppeal } from '@/lib/api/fights';
 import { getOfficialJudges } from '@/lib/api/judges';
 import { useTokens } from '@/hooks/useTokens';
+import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
 import type { Fight, Judge } from '@/types/database';
 
 export default function AppealPage() {
@@ -69,11 +70,10 @@ function AppealContent() {
       await refresh();
       router.push(`/fight/?id=${fightId}`);
     } catch (err) {
-      const errObj = err as Record<string, unknown>;
-      if (errObj.code === 'INSUFFICIENT_TOKENS') {
+      if (isInsufficientTokens(err)) {
         setShowAdModal(true);
       } else {
-        setError(err instanceof Error ? err.message : '오류가 발생했습니다');
+        setError(getErrorMessage(err));
       }
       setIsSubmitting(false);
     }
@@ -99,8 +99,8 @@ function AppealContent() {
   }
 
   return (
-    <div className="px-5 pb-8">
-      <div className="pt-6 pb-6">
+    <div className="px-5 pb-24">
+      <div className="pt-16 pb-6">
         <h1 className="text-h2 text-gray-900">항소하기</h1>
         <p className="text-body2 text-gray-500 mt-1">판결이 불만족스러우셨나요? 다시 판결받아보세요</p>
       </div>

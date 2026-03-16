@@ -50,8 +50,8 @@ export default function CreateJudgePage() {
   }
 
   return (
-    <div className="px-5 pb-8">
-      <div className="pt-6 pb-6">
+    <div className="px-5 pb-24">
+      <div className="pt-16 pb-6">
         <h1 className="text-h2 text-gray-900">판사 만들기</h1>
         <p className="text-body2 text-gray-500 mt-1">
           6가지 질문에 답하면 AI가 판사를 만들어드려요

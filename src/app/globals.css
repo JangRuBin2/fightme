@@ -130,7 +130,6 @@ html[data-theme='neon-fight'] {
 
 /* ── Disable pinch zoom for Toss WebView ── */
 html {
-  touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
 }

@@ -58,9 +58,9 @@ export default function MyFightsPage() {
   }
 
   return (
-    <div className="px-5 pb-8">
+    <div className="px-5 pb-24">
       {/* Header */}
-      <div className="pt-6 pb-4">
+      <div className="pt-16 pb-4">
         <button
           className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
           onClick={() => router.push('/my/')}

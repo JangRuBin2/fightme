@@ -1,8 +1,9 @@
-// Judge API 함수
-// Supabase DB 읽기 및 Edge Function 호출
+// Judge API functions
+// Supabase DB reads + Edge Function calls
 
 import { createClient } from '@/lib/supabase/client';
 import { callEdgeFunction } from './edge';
+import { createJudgeResponseSchema } from '@/lib/schemas';
 import type { Judge, JudgeVote } from '@/types/database';
 
 export interface CreateJudgeWizardData {
@@ -15,7 +16,7 @@ export interface CreateJudgeWizardData {
   q6: string;
 }
 
-// 판사 목록 조회 (공식/유저 필터)
+// Judge list (official/user filter)
 export async function getJudges(
   type: 'official' | 'user' | 'all' = 'all',
   sort: 'score' | 'recent' = 'score'
@@ -44,12 +45,12 @@ export async function getJudges(
   return data ?? [];
 }
 
-// 공식 판사 목록 조회
+// Official judges
 export async function getOfficialJudges(): Promise<Judge[]> {
   return getJudges('official', 'score');
 }
 
-// 판사 단건 조회
+// Single judge
 export async function getJudge(judgeId: string): Promise<Judge | null> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -66,7 +67,7 @@ export async function getJudge(judgeId: string): Promise<Judge | null> {
   return data;
 }
 
-// 내가 만든 판사 조회
+// My judges
 export async function getMyJudges(): Promise<Judge[]> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -82,16 +83,14 @@ export async function getMyJudges(): Promise<Judge[]> {
   return data ?? [];
 }
 
-// 판사 생성 (MBTI 위자드 데이터) (Edge Function)
-export async function createJudge(
-  wizardData: CreateJudgeWizardData
-): Promise<{ judge: Judge }> {
-  return callEdgeFunction<{ judge: Judge }>('judge-create', {
+// Create judge (Edge Function)
+export async function createJudge(wizardData: CreateJudgeWizardData) {
+  return callEdgeFunction('judge-create', createJudgeResponseSchema, {
     body: wizardData,
   });
 }
 
-// 판사 투표 (upsert, boolean)
+// Vote on judge (upsert)
 export async function voteJudge(
   judgeId: string,
   isUpvote: boolean
@@ -117,10 +116,8 @@ export async function voteJudge(
   return data;
 }
 
-// 사용자의 판사 투표 조회
-export async function getUserVotes(
-  judgeIds: string[]
-): Promise<JudgeVote[]> {
+// Get user's votes for judges
+export async function getUserVotes(judgeIds: string[]): Promise<JudgeVote[]> {
   if (judgeIds.length === 0) return [];
 
   const supabase = createClient();

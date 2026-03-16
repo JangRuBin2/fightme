@@ -54,9 +54,9 @@ export default function MyJudgesPage() {
   }
 
   return (
-    <div className="px-5 pb-8">
+    <div className="px-5 pb-24">
       {/* Header */}
-      <div className="pt-6 pb-4">
+      <div className="pt-16 pb-4">
         <button
           className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
           onClick={() => router.push('/my/')}
@@ -149,9 +149,10 @@ export default function MyJudgesPage() {
 
       {/* Create Judge FAB */}
       <button
-        className="fixed bottom-8 right-5 w-14 h-14 rounded-full bg-primary-400 text-white
+        className="fixed right-5 w-14 h-14 rounded-full bg-primary-400 text-white
                    shadow-lg flex items-center justify-center active:bg-primary-500
-                   transition-colors duration-150 safe-bottom"
+                   transition-colors duration-150 z-40"
+        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
         onClick={() => router.push('/judges/create/')}
       >
         <Plus className="w-6 h-6" />

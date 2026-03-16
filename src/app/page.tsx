@@ -9,17 +9,25 @@ import { getOfficialJudges } from '@/lib/api/judges';
 import { createFight } from '@/lib/api/fights';
 import { useStore } from '@/store/useStore';
 import { useTokens } from '@/hooks/useTokens';
+import { getErrorCode, getErrorMessage } from '@/lib/errors';
 import type { Judge } from '@/types/database';
 
 export default function HomePage() {
   const router = useRouter();
-  const [userClaim, setUserClaim] = useState('');
-  const [opponentClaim, setOpponentClaim] = useState('');
-  const [selectedJudge, setSelectedJudge] = useState<string | null>(null);
+  const {
+    isLoggedIn,
+    currentFight,
+    setUserClaim: storeSetUserClaim,
+    setOpponentClaim: storeSetOpponentClaim,
+    setJudgeId: storeSetJudgeId,
+    resetFight,
+  } = useStore();
+  const userClaim = currentFight.userClaim;
+  const opponentClaim = currentFight.opponentClaim;
+  const selectedJudge = currentFight.judgeId;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [judges, setJudges] = useState<Judge[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { isLoggedIn } = useStore();
   const { balance } = useTokens();
 
   useEffect(() => {
@@ -46,20 +54,25 @@ export default function HomePage() {
 
     try {
       const result = await createFight(userClaim.trim(), opponentClaim.trim(), selectedJudge!);
+      resetFight();
       router.push(`/fight/?id=${result.fight.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '오류가 발생했습니다');
+      if (getErrorCode(err) === 'AUTH_REQUIRED') {
+        router.push('/login/');
+        return;
+      }
+      setError(getErrorMessage(err));
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="px-5 pb-8">
+    <div className="px-5 pb-24">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pt-6 pb-8 text-center"
+        className="pt-16 pb-8 text-center"
       >
         <div className="inline-flex items-center gap-2 mb-2">
           <Swords className="w-8 h-8 text-primary-400" />
@@ -91,7 +104,7 @@ export default function HomePage() {
           placeholder="내가 왜 맞는지 적어주세요..."
           maxLength={100}
           value={userClaim}
-          onChange={(e) => setUserClaim(e.target.value)}
+          onChange={(e) => storeSetUserClaim(e.target.value)}
         />
         <p className="text-caption text-gray-400 text-right mt-1">
           {userClaim.length}/100
@@ -113,7 +126,7 @@ export default function HomePage() {
           placeholder="상대방은 뭐라고 했나요..."
           maxLength={100}
           value={opponentClaim}
-          onChange={(e) => setOpponentClaim(e.target.value)}
+          onChange={(e) => storeSetOpponentClaim(e.target.value)}
         />
         <p className="text-caption text-gray-400 text-right mt-1">
           {opponentClaim.length}/100
@@ -144,7 +157,7 @@ export default function HomePage() {
           <JudgeSelector
             judges={judges}
             selectedId={selectedJudge}
-            onSelect={setSelectedJudge}
+            onSelect={storeSetJudgeId}
             showTabs
           />
         ) : (

@@ -8,6 +8,7 @@ import FaultGauge from '@/components/fight/FaultGauge';
 import { getPublicFight } from '@/lib/api/fights';
 import type { Fight, Judge } from '@/types/database';
 
+
 export default function ResultPage() {
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="w-8 h-8 border-3 border-primary-400 border-t-transparent rounded-full animate-spin" /></div>}>
@@ -37,8 +38,8 @@ function ResultContent() {
       if (!result) {
         setNotFound(true);
       } else {
-        setFight(result.fight as unknown as Fight);
-        setJudge(result.judge as unknown as Judge);
+        setFight(result.fight);
+        setJudge(result.judge);
       }
       setLoading(false);
     }
@@ -73,12 +74,12 @@ function ResultContent() {
   const judgeName = judge?.name || '판사';
 
   return (
-    <div className="px-5 pb-8">
+    <div className="px-5 pb-24">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="pt-8 pb-6 text-center"
+        className="pt-16 pb-6 text-center"
       >
         <div className="inline-flex items-center gap-2 mb-3">
           <Swords className="w-6 h-6 text-primary-400" />
@@ -114,7 +115,7 @@ function ResultContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl p-5 shadow-sm mb-4"
+          className="card p-5 mb-4"
         >
           <FaultGauge
             myFault={fight.user_fault}

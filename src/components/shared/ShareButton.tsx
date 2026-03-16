@@ -8,6 +8,21 @@ interface ShareButtonProps {
   comment?: string;
 }
 
+function hasTossShareApi(win: Window): win is Window & {
+  TossApp: { share: (data: ShareData) => Promise<void> };
+} {
+  if (
+    'TossApp' in win &&
+    win.TossApp !== null &&
+    typeof win.TossApp === 'object' &&
+    'share' in win.TossApp &&
+    typeof win.TossApp.share === 'function'
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export default function ShareButton({ fightId, comment }: ShareButtonProps) {
   const [isSharing, setIsSharing] = useState(false);
 
@@ -24,12 +39,9 @@ export default function ShareButton({ fightId, comment }: ShareButtonProps) {
       };
 
       // Try Toss share API first
-      if (typeof (window as Record<string, unknown>).TossApp === 'object') {
-        const TossApp = (window as Record<string, unknown>).TossApp as Record<string, unknown>;
-        if (typeof TossApp.share === 'function') {
-          await (TossApp.share as (data: ShareData) => Promise<void>)(shareData);
-          return;
-        }
+      if (hasTossShareApi(window)) {
+        await window.TossApp.share(shareData);
+        return;
       }
 
       if (navigator.share) {
@@ -39,8 +51,8 @@ export default function ShareButton({ fightId, comment }: ShareButtonProps) {
         alert('링크가 복사되었습니다!');
       }
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Share failed:', error);
+      if (error instanceof Error && error.name !== 'AbortError') {
+        // Share cancelled or failed silently
       }
     } finally {
       setIsSharing(false);

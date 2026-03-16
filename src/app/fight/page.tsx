@@ -18,6 +18,7 @@ import ShareButton from '@/components/shared/ShareButton';
 import { getFight, revealFight, getFightDetail } from '@/lib/api/fights';
 import { getJudge } from '@/lib/api/judges';
 import { useTokens } from '@/hooks/useTokens';
+import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
 import type { Fight, Judge } from '@/types/database';
 
 export default function FightResultPage() {
@@ -77,11 +78,10 @@ function FightResultContent() {
       setFight(result.fight);
       await refresh();
     } catch (err) {
-      const errObj = err as Record<string, unknown>;
-      if (errObj.code === 'INSUFFICIENT_TOKENS') {
+      if (isInsufficientTokens(err)) {
         setError('토큰이 부족합니다. 광고를 시청해주세요.');
       } else {
-        setError(err instanceof Error ? err.message : '오류가 발생했습니다');
+        setError(getErrorMessage(err));
       }
     } finally {
       setIsRevealLoading(false);
@@ -96,8 +96,7 @@ function FightResultContent() {
       setVerdictDetail(result.verdict_detail);
       await refresh();
     } catch (err) {
-      const errObj = err as Record<string, unknown>;
-      if (errObj.code === 'INSUFFICIENT_TOKENS') {
+      if (isInsufficientTokens(err)) {
         setError('토큰이 부족합니다');
       }
     } finally {
@@ -130,12 +129,12 @@ function FightResultContent() {
   const isRevealed = fight.user_fault !== null && fight.comment !== null;
 
   return (
-    <div className="px-5 pb-8">
+    <div className="px-5 pb-24">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="pt-6 pb-4 text-center"
+        className="pt-16 pb-4 text-center"
       >
         <div className="inline-flex items-center gap-2 mb-2">
           <Swords className="w-5 h-5 text-primary-400" />

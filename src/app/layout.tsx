@@ -1,10 +1,13 @@
 'use client';
 
 import './globals.css';
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { useStore } from '@/store/useStore';
+import { useSessionSync } from '@/hooks/useSessionSync';
 import HamburgerMenu from '@/components/layout/HamburgerMenu';
-import BottomNav from '@/components/layout/BottomNav';
+
+const DebugPanel = lazy(() => import('@/components/debug/DebugPanel'));
+const IS_DEBUG = process.env.NEXT_PUBLIC_DEBUG === 'true';
 
 export default function RootLayout({
   children,
@@ -12,6 +15,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const theme = useStore((s) => s.theme);
+  useSessionSync();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -33,10 +37,14 @@ export default function RootLayout({
       </head>
       <body>
         <HamburgerMenu />
-        <main className="min-h-screen safe-top safe-bottom pb-16">
+        <main className="min-h-screen safe-top safe-bottom">
           {children}
         </main>
-        <BottomNav />
+        {IS_DEBUG && (
+          <Suspense fallback={null}>
+            <DebugPanel />
+          </Suspense>
+        )}
       </body>
     </html>
   );
