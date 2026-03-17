@@ -5,6 +5,7 @@ export default defineConfig({
   brand: {
     displayName: '나랑 싸울래?',
     icon: 'https://static.toss.im/appsintoss/20071/daf30744-00e2-466b-8364-9cb5ac069932.png',
+    // 네비게이션 바 로고 = 토스 콘솔에 업로드한 앱 아이콘과 동일
     primaryColor: '#FF6B6B',
   },
   navigationBar: {
