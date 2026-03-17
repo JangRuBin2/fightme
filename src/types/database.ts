@@ -5,6 +5,8 @@ export interface Profile {
   id: string;
   nickname: string | null;
   token: number;
+  is_premium: boolean;
+  premium_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,10 +25,30 @@ export interface Judge {
   created_at: string;
 }
 
+export interface DefenseSection {
+  side: 'user' | 'opponent';
+  text: string;
+}
+
+export interface DefenseData {
+  sections: DefenseSection[];
+}
+
+export interface OriginalVerdict {
+  judge_id: string;
+  user_fault: number | null;
+  opponent_fault: number | null;
+  comment: string | null;
+  verdict_detail: string | null;
+  defense: DefenseData | null;
+}
+
 export interface Fight {
   id: string;
   user_id: string;
   judge_id: string;
+  user_name: string | null;
+  opponent_name: string | null;
   user_claim: string;
   opponent_claim: string;
   user_fault: number | null;
@@ -34,7 +56,8 @@ export interface Fight {
   comment: string | null;
   verdict_detail: string | null;
   stage: 'INITIAL' | 'APPEAL';
-  defense: string | null;
+  defense: DefenseData | null;
+  original_verdict: OriginalVerdict | null;
   is_revealed: boolean;
   created_at: string;
 }
@@ -55,7 +78,9 @@ export type TokenReason =
   | 'FIGHT_DETAIL'
   | 'FIGHT_APPEAL'
   | 'FIGHT_DEFENSE_AI'
-  | 'FIGHT_DEFENSE_SELF';
+  | 'FIGHT_DEFENSE_SELF'
+  | 'JUDGE_CREATE'
+  | 'IAP_PURCHASE';
 
 export interface TokenLog {
   id: string;

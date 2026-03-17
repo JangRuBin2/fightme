@@ -3,7 +3,7 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { callEdgeFunction } from './edge';
-import { createJudgeResponseSchema } from '@/lib/schemas';
+import { createJudgeResponseSchema, judgeManageResponseSchema } from '@/lib/schemas';
 import type { Judge, JudgeVote } from '@/types/database';
 
 export interface CreateJudgeWizardData {
@@ -87,6 +87,20 @@ export async function getMyJudges(): Promise<Judge[]> {
 export async function createJudge(wizardData: CreateJudgeWizardData) {
   return callEdgeFunction('judge-create', createJudgeResponseSchema, {
     body: wizardData,
+  });
+}
+
+// Retry review for rejected/pending judge
+export async function retryJudgeReview(judgeId: string) {
+  return callEdgeFunction('judge-manage', judgeManageResponseSchema, {
+    body: { action: 'retry', judge_id: judgeId },
+  });
+}
+
+// Delete a judge
+export async function deleteJudge(judgeId: string) {
+  return callEdgeFunction('judge-manage', judgeManageResponseSchema, {
+    body: { action: 'delete', judge_id: judgeId },
   });
 }
 

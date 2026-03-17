@@ -4,33 +4,54 @@ import { spendTokens } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
 
+interface DefenseSection {
+  side: 'user' | 'opponent';
+  text: string;
+}
+
+interface DefenseData {
+  sections: DefenseSection[];
+}
+
+function formatDefenseForPrompt(defense: DefenseData | null): string {
+  if (!defense || !defense.sections || defense.sections.length === 0) return '';
+
+  const parts: string[] = [];
+  for (const section of defense.sections) {
+    const label = section.side === 'user' ? '원고' : '피고';
+    parts.push(`[${label} 측 변론]: ${section.text}`);
+  }
+  return '\n\n' + parts.join('\n\n');
+}
+
 function buildAppealUserPrompt(
   judge: { name: string },
   userClaim: string,
   opponentClaim: string,
   originalFight: { user_fault: number; opponent_fault: number; comment: string; verdict_detail: string | null },
-  defense: string | null
+  defense: DefenseData | null,
+  userName: string,
+  opponentName: string,
 ): string {
   let prompt = `너는 "${judge.name}" 판사다.
 
 이것은 항소심이다. 원심 판결을 검토하고, 변론이 있다면 이를 고려하여 재판결해라.
 
-[원고 주장]: ${userClaim}
-[피고 주장]: ${opponentClaim}
+[${userName}(원고) 주장]: ${userClaim}
+[${opponentName}(피고) 주장]: ${opponentClaim}
 
 [원심 판결]:
-- 원고 과실: ${originalFight.user_fault}%
-- 피고 과실: ${originalFight.opponent_fault}%
+- ${userName} 과실: ${originalFight.user_fault}%
+- ${opponentName} 과실: ${originalFight.opponent_fault}%
 - 판결: ${originalFight.comment}
 - 이유: ${originalFight.verdict_detail || '없음'}`;
 
-  if (defense) {
-    prompt += `\n\n[원고측 변론]: ${defense}`;
+  const defenseText = formatDefenseForPrompt(defense);
+  if (defenseText) {
+    prompt += defenseText;
   }
 
-  prompt += `\n\n반드시 아래 JSON 형식으로만 응답해. 다른 텍스트는 절대 포함하지 마.
-{"user_fault":0-100,"opponent_fault":0-100,"comment":"한줄 판결 40자 이내","verdict_detail":"판결 이유 200자 이내"}
-
+  prompt += `\n\n판결할 때 원고를 "${userName}", 피고를 "${opponentName}"이라고 불러라.
 주의: user_fault + opponent_fault = 100. 캐릭터에 맞는 말투로 재미있게 판결해라. 변론 내용이 타당하다면 판결을 수정해도 된다.`;
 
   return prompt;
@@ -41,8 +62,8 @@ const JUDGMENT_SCHEMA = {
   properties: {
     user_fault: { type: 'integer' as const, description: '원고 과실 비율 0-100' },
     opponent_fault: { type: 'integer' as const, description: '피고 과실 비율 0-100' },
-    comment: { type: 'string' as const, description: '한줄 판결 40자 이내' },
-    verdict_detail: { type: 'string' as const, description: '판결 이유 200자 이내' },
+    comment: { type: 'string' as const, description: '한줄 판결 50자 이내' },
+    verdict_detail: { type: 'string' as const, description: '판결 이유 2~3문장, 300자 이내' },
   },
   required: ['user_fault', 'opponent_fault', 'comment', 'verdict_detail'],
 };
@@ -108,8 +129,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Spend 2 tokens
-    const newBalance = await spendTokens(supabaseAdmin, user.id, 2, 'FIGHT_APPEAL');
+    // Spend 5 tokens
+    const newBalance = await spendTokens(supabaseAdmin, user.id, 5, 'FIGHT_APPEAL');
     if (newBalance === null) {
       return new Response(
         JSON.stringify({ error: '토큰이 부족합니다', code: 'INSUFFICIENT_TOKENS' }),
@@ -133,17 +154,34 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Parse defense from jsonb
+    const defenseData: DefenseData | null = fight.defense ?? null;
+    const userName = fight.user_name || '원고';
+    const opponentName = fight.opponent_name || '피고';
+
     // Call Gemini API for appeal
     const userPrompt = buildAppealUserPrompt(
       judge,
       fight.user_claim,
       fight.opponent_claim,
       fight,
-      fight.defense
+      defenseData,
+      userName,
+      opponentName,
     );
     const judgment = await getJudgment(judge.prompt, userPrompt);
 
-    // Update fight directly with new verdict
+    // Save original verdict before overwriting
+    const originalVerdict = {
+      judge_id: fight.judge_id,
+      user_fault: fight.user_fault,
+      opponent_fault: fight.opponent_fault,
+      comment: fight.comment,
+      verdict_detail: fight.verdict_detail,
+      defense: fight.defense,
+    };
+
+    // Update fight with new verdict
     const { data: updatedFight, error: updateError } = await supabaseAdmin
       .from('fights')
       .update({
@@ -153,14 +191,15 @@ Deno.serve(async (req) => {
         opponent_fault: judgment.opponent_fault,
         comment: judgment.comment,
         verdict_detail: judgment.verdict_detail,
-        is_revealed: false,
+        original_verdict: originalVerdict,
+        is_revealed: true,
       })
       .eq('id', fight.id)
       .select()
       .single();
 
     if (updateError) {
-      throw new Error(`Failed to update fight: ${updateError?.message}`);
+      throw new Error(`Failed to update fight: ${updateError.message}`);
     }
 
     return new Response(

@@ -49,7 +49,7 @@ export default function AdModal({ onClose }: AdModalProps) {
             className="text-center py-8"
           >
             <CheckCircle className="w-16 h-16 text-accent-500 mx-auto mb-3" />
-            <p className="text-body1 font-semibold text-gray-900">토큰 3개 충전 완료!</p>
+            <p className="text-body1 font-semibold text-gray-900">토큰 5개 충전 완료!</p>
           </motion.div>
         ) : (
           <div className="text-center py-4">
@@ -57,7 +57,7 @@ export default function AdModal({ onClose }: AdModalProps) {
               <Coins className="w-8 h-8 text-accent-500" />
             </div>
             <p className="text-body1 font-semibold text-gray-900 mb-1">
-              광고를 시청하고 토큰 3개 받기
+              광고를 시청하고 토큰 5개 받기
             </p>
             <p className="text-body2 text-gray-500 mb-6">
               짧은 광고를 보면 토큰이 충전됩니다

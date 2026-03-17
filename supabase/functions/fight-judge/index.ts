@@ -1,7 +1,10 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
+import { spendTokens } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
+
+const JUDGE_COST = 3;
 
 const JUDGMENT_SCHEMA = {
   type: 'object' as const,
@@ -96,6 +99,15 @@ Deno.serve(async (req) => {
       { onConflict: 'id', ignoreDuplicates: true }
     );
 
+    // Spend 3 tokens for judgment
+    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_COST, 'FIGHT_JUDGE');
+    if (newBalance === null) {
+      return new Response(
+        JSON.stringify({ error: '토큰이 부족합니다 (3개 필요)', code: 'INSUFFICIENT_TOKENS' }),
+        { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Call Gemini API
     const systemPrompt = judge.prompt;
     const userName = user_name || '원고';
@@ -109,6 +121,8 @@ Deno.serve(async (req) => {
       .insert({
         user_id: user.id,
         judge_id,
+        user_name: user_name || null,
+        opponent_name: opponent_name || null,
         user_claim,
         opponent_claim,
         user_fault: judgment.user_fault,
@@ -116,7 +130,7 @@ Deno.serve(async (req) => {
         comment: judgment.comment,
         verdict_detail: judgment.verdict_detail,
         stage: 'INITIAL',
-        is_revealed: false,
+        is_revealed: true,
       })
       .select()
       .single();

@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Swords, ChevronRight, Coins } from 'lucide-react';
+import { Swords, ChevronRight, Coins, Plus, ShoppingBag } from 'lucide-react';
 import JudgeSelector from '@/components/judge/JudgeSelector';
-import { getOfficialJudges } from '@/lib/api/judges';
+import VerdictLoading from '@/components/fight/VerdictLoading';
+import AdModal from '@/components/shared/AdModal';
+import { getJudges } from '@/lib/api/judges';
 import { createFight } from '@/lib/api/fights';
 import { useStore } from '@/store/useStore';
 import { useTokens } from '@/hooks/useTokens';
@@ -32,10 +34,11 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [judges, setJudges] = useState<Judge[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { balance } = useTokens();
+  const [showAdModal, setShowAdModal] = useState(false);
+  const { balance, refresh } = useTokens();
 
   useEffect(() => {
-    getOfficialJudges()
+    getJudges('all')
       .then(setJudges)
       .catch(() => {});
   }, []);
@@ -76,6 +79,10 @@ export default function HomePage() {
     }
   };
 
+  if (isSubmitting) {
+    return <VerdictLoading />;
+  }
+
   return (
     <div className="px-5 pb-24">
       {/* Header */}
@@ -92,9 +99,25 @@ export default function HomePage() {
           AI 판사가 공정하게 판결해드립니다
         </p>
         {isLoggedIn && (
-          <div className="inline-flex items-center gap-1 mt-3 px-3 py-1 rounded-full bg-accent-50 text-accent-600 text-caption font-medium">
-            <Coins className="w-3.5 h-3.5" />
-            토큰 {balance}개
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-accent-50 text-accent-600 text-caption font-medium">
+              <Coins className="w-3.5 h-3.5" />
+              토큰 {balance}개
+            </div>
+            <button
+              onClick={() => setShowAdModal(true)}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-400 text-gray-50 text-caption font-medium active:bg-primary-500"
+            >
+              <Plus className="w-3 h-3" />
+              충전
+            </button>
+            <button
+              onClick={() => router.push('/shop/')}
+              className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-accent-500 text-gray-50 text-caption font-medium active:bg-accent-600"
+            >
+              <ShoppingBag className="w-3 h-3" />
+              상점
+            </button>
           </div>
         )}
       </motion.div>
@@ -237,11 +260,13 @@ export default function HomePage() {
           ) : (
             <>
               <Swords className="w-5 h-5" />
-              판결 받기
+              판결 받기 (토큰 3개)
             </>
           )}
         </button>
       </motion.div>
+
+      {showAdModal && <AdModal onClose={() => { setShowAdModal(false); refresh(); }} />}
     </div>
   );
 }

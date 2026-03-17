@@ -104,9 +104,10 @@ export async function submitAppeal(fightId: string, judgeId?: string) {
 export async function submitDefense(
   fightId: string,
   defenseText: string | null,
-  defenseType: 'ai' | 'self'
+  defenseType: 'ai' | 'self',
+  defenseSide: 'user' | 'opponent' | 'both' = 'user',
 ) {
   return callEdgeFunction('fight-defense', defenseResponseSchema, {
-    body: { fight_id: fightId, defense_text: defenseText, defense_type: defenseType },
+    body: { fight_id: fightId, defense_text: defenseText, defense_type: defenseType, defense_side: defenseSide },
   });
 }

@@ -7,15 +7,12 @@ import {
   Swords,
   RotateCcw,
   Shield,
-  Share2,
-  Lock,
   Coins,
 } from 'lucide-react';
 import Link from 'next/link';
 import VerdictCard from '@/components/fight/VerdictCard';
-import TokenGate from '@/components/shared/TokenGate';
 import ShareButton from '@/components/shared/ShareButton';
-import { getFight, revealFight, getFightDetail } from '@/lib/api/fights';
+import { getFight, getFightDetail } from '@/lib/api/fights';
 import { getJudge } from '@/lib/api/judges';
 import { useTokens } from '@/hooks/useTokens';
 import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
@@ -38,7 +35,6 @@ function FightResultContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [verdictDetail, setVerdictDetail] = useState<string | null>(null);
-  const [isRevealLoading, setIsRevealLoading] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
   const { balance, refresh } = useTokens();
 
@@ -69,24 +65,6 @@ function FightResultContent() {
 
     load();
   }, [fightId]);
-
-  const handleReveal = async () => {
-    if (!fight || isRevealLoading) return;
-    setIsRevealLoading(true);
-    try {
-      const result = await revealFight(fight.id);
-      setFight(result.fight);
-      await refresh();
-    } catch (err) {
-      if (isInsufficientTokens(err)) {
-        setError('토큰이 부족합니다. 광고를 시청해주세요.');
-      } else {
-        setError(getErrorMessage(err));
-      }
-    } finally {
-      setIsRevealLoading(false);
-    }
-  };
 
   const handleRequestDetail = async () => {
     if (!fight || isDetailLoading) return;
@@ -125,9 +103,6 @@ function FightResultContent() {
 
   if (!fight) return null;
 
-  // Not yet revealed - show reveal gate
-  const isRevealed = fight.user_fault !== null && fight.comment !== null;
-
   return (
     <div className="px-5 pb-24">
       {/* Header */}
@@ -150,99 +125,60 @@ function FightResultContent() {
         </div>
       </div>
 
-      {isRevealed ? (
-        <>
-          {/* Verdict Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <VerdictCard
-              fight={fight}
-              judge={judge || { id: fight.judge_id, name: '판사' }}
-              verdictDetail={verdictDetail}
-              onRequestDetail={handleRequestDetail}
-              isDetailLoading={isDetailLoading}
-            />
-          </motion.div>
+      {/* Verdict Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <VerdictCard
+          fight={fight}
+          judge={judge || { id: fight.judge_id, name: '판사' }}
+          verdictDetail={verdictDetail}
+          onRequestDetail={handleRequestDetail}
+          isDetailLoading={isDetailLoading}
+        />
+      </motion.div>
 
-          {/* Error */}
-          {error && (
-            <p className="text-body2 text-red-500 text-center mt-3">{error}</p>
-          )}
+      {/* Error */}
+      {error && (
+        <p className="text-body2 text-red-500 text-center mt-3">{error}</p>
+      )}
 
-          {/* Action Buttons */}
-          {fight.stage === 'INITIAL' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-col gap-3 mt-6"
-            >
-              <Link
-                href={`/fight/defense/?id=${fightId}`}
-                className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2"
-              >
-                <Shield className="w-5 h-5" />
-                변론 추가하기
-              </Link>
-              <Link
-                href={`/fight/appeal/?id=${fightId}`}
-                className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center border-2 border-primary-400 text-primary-400 active:bg-primary-50 flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-5 h-5" />
-                판사 바꿔서 다시 판결 (토큰 2개)
-              </Link>
-              {fight.is_revealed && (
-                <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
-              )}
-            </motion.div>
-          )}
-
-          {fight.stage === 'APPEAL' && fight.is_revealed && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mt-6"
-            >
-              <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
-            </motion.div>
-          )}
-        </>
-      ) : (
-        /* Reveal gate */
+      {/* Action Buttons */}
+      {fight.stage === 'INITIAL' && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="card text-center py-10"
+          transition={{ delay: 0.5 }}
+          className="flex flex-col gap-3 mt-6"
         >
-          <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-h3 text-gray-900 mb-2">판결이 완료되었습니다!</h2>
-          <p className="text-body2 text-gray-500 mb-6">
-            결과를 확인하려면 토큰 2개가 필요합니다
-          </p>
-
-          {error && (
-            <p className="text-body2 text-red-500 mb-4">{error}</p>
-          )}
-
-          <button
-            onClick={handleReveal}
-            disabled={isRevealLoading}
-            className="btn-primary max-w-[250px] mx-auto flex items-center justify-center gap-2"
+          <Link
+            href={`/fight/defense/?id=${fightId}`}
+            className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2"
           >
-            {isRevealLoading ? (
-              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <>
-                <Coins className="w-5 h-5" />
-                토큰 2개로 결과 보기
-              </>
-            )}
-          </button>
+            <Shield className="w-5 h-5" />
+            변론 추가하기
+          </Link>
+          <Link
+            href={`/fight/appeal/?id=${fightId}`}
+            className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center border-2 border-primary-400 text-primary-400 active:bg-primary-50 flex items-center justify-center gap-2"
+          >
+            <RotateCcw className="w-5 h-5" />
+            판사 바꿔서 다시 판결 (토큰 5개)
+          </Link>
+          <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
+        </motion.div>
+      )}
+
+      {fight.stage === 'APPEAL' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-6"
+        >
+          <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
         </motion.div>
       )}
     </div>

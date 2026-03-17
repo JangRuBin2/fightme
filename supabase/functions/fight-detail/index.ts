@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Spend 1 token
-    const newBalance = await spendTokens(supabaseAdmin, user.id, 1, 'FIGHT_DETAIL');
+    // Spend 2 tokens
+    const newBalance = await spendTokens(supabaseAdmin, user.id, 2, 'FIGHT_DETAIL');
     if (newBalance === null) {
       return new Response(
         JSON.stringify({ error: '토큰이 부족합니다', code: 'INSUFFICIENT_TOKENS' }),

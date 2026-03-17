@@ -35,8 +35,8 @@ export const AD_GROUP_IDS = {
   TEST_INTERSTITIAL: 'ait-ad-test-interstitial-id',
   TEST_REWARDED: 'ait-ad-test-rewarded-id',
 
-  // 프로덕션 보상형 광고 ID (토스 콘솔에서 발급 후 교체)
-  FIGHT_REWARDED: 'fightme.rewarded.fight',
+  // 프로덕션 보상형 광고 ID (토큰 5개 보상)
+  FIGHT_REWARDED: 'ait.v2.live.b16fc5093de345e2',
 } as const;
 
 export type AdGroupId = typeof AD_GROUP_IDS[keyof typeof AD_GROUP_IDS];

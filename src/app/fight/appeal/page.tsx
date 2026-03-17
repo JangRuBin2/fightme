@@ -5,9 +5,10 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { RotateCcw, Coins } from 'lucide-react';
 import JudgeSelector from '@/components/judge/JudgeSelector';
+import VerdictLoading from '@/components/fight/VerdictLoading';
 import AdModal from '@/components/shared/AdModal';
 import { getFight, submitAppeal } from '@/lib/api/fights';
-import { getOfficialJudges } from '@/lib/api/judges';
+import { getJudges } from '@/lib/api/judges';
 import { useTokens } from '@/hooks/useTokens';
 import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
 import type { Fight, Judge } from '@/types/database';
@@ -39,7 +40,7 @@ function AppealContent() {
       try {
         const [fightData, judgesData] = await Promise.all([
           getFight(fightId),
-          getOfficialJudges(),
+          getJudges('all'),
         ]);
         setFight(fightData);
         setJudges(judgesData);
@@ -56,7 +57,7 @@ function AppealContent() {
   const handleAppeal = async () => {
     if (!fight || !fightId || isSubmitting) return;
 
-    if (!canAfford(2)) {
+    if (!canAfford(5)) {
       setShowAdModal(true);
       return;
     }
@@ -87,6 +88,10 @@ function AppealContent() {
     );
   }
 
+  if (isSubmitting) {
+    return <VerdictLoading />;
+  }
+
   if (fight.stage === 'APPEAL') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-5">
@@ -111,12 +116,12 @@ function AppealContent() {
           <h3 className="text-body2 font-medium text-gray-500 mb-3">기존 판결 요약</h3>
           <div className="flex items-center gap-4 mb-3">
             <div className="flex-1 text-center">
-              <p className="text-caption text-gray-400">내 잘못</p>
+              <p className="text-caption text-gray-400">{fight.user_name || '내'} 잘못</p>
               <p className="text-h3 text-primary-400">{fight.user_fault}%</p>
             </div>
             <div className="w-px h-8 bg-gray-200" />
             <div className="flex-1 text-center">
-              <p className="text-caption text-gray-400">상대 잘못</p>
+              <p className="text-caption text-gray-400">{fight.opponent_name || '상대'} 잘못</p>
               <p className="text-h3 text-accent-400">{fight.opponent_fault}%</p>
             </div>
           </div>
@@ -161,6 +166,7 @@ function AppealContent() {
             judges={judges.filter((j) => j.id !== fight.judge_id)}
             selectedId={selectedJudge}
             onSelect={setSelectedJudge}
+            showTabs
           />
         )}
       </motion.div>
@@ -168,7 +174,7 @@ function AppealContent() {
       {/* Token cost notice */}
       <div className="bg-accent-50 rounded-xl p-3 mb-6 flex items-center justify-center gap-2">
         <Coins className="w-4 h-4 text-accent-500" />
-        <p className="text-caption text-accent-700 font-medium">토큰 2개 사용 (현재 {balance}개)</p>
+        <p className="text-caption text-accent-700 font-medium">토큰 5개 사용 (현재 {balance}개)</p>
       </div>
 
       {error && (

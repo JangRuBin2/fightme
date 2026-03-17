@@ -260,14 +260,14 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from('profiles').upsert({
         id: signUpData.user.id,
         nickname: null,
-        token: 5,
+        token: 10,
         updated_at: new Date().toISOString(),
       });
 
       // Log signup bonus
       await supabaseAdmin.from('token_logs').insert({
         user_id: signUpData.user.id,
-        amount: 5,
+        amount: 10,
         reason: 'SIGNUP_BONUS',
       });
 

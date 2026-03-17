@@ -2,7 +2,7 @@ import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { grantTokens } from '../_shared/tokens.ts';
 
-const AD_REWARD_AMOUNT = 3;
+const AD_REWARD_AMOUNT = 5;
 
 Deno.serve(async (req) => {
   const corsResponse = handleCors(req);

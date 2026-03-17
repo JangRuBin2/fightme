@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Bot, PenLine, Shield, Coins } from 'lucide-react';
+import { Bot, PenLine, Shield, Coins, User, Users } from 'lucide-react';
 import AdModal from '@/components/shared/AdModal';
 import { getFight, submitDefense } from '@/lib/api/fights';
 import { useTokens } from '@/hooks/useTokens';
@@ -11,6 +11,34 @@ import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
 import type { Fight } from '@/types/database';
 
 type DefenseTab = 'ai' | 'self';
+type DefenseSide = 'user' | 'opponent' | 'both';
+
+interface DefenseSectionData {
+  side: 'user' | 'opponent';
+  text: string;
+}
+
+function DefensePreview({ sections }: { sections: DefenseSectionData[] }) {
+  return (
+    <>
+      {sections.map((section, i) => {
+        const isOpponent = section.side === 'opponent';
+        const label = isOpponent ? '상대 측 변론' : '내 측 변론';
+        return (
+          <div key={i} className={`${isOpponent ? 'bg-amber-50' : 'bg-blue-50'} rounded-xl p-4`}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Shield className={`w-4 h-4 ${isOpponent ? 'text-amber-500' : 'text-blue-500'}`} />
+              <p className={`text-body2 font-medium ${isOpponent ? 'text-amber-600' : 'text-blue-600'}`}>
+                {label}
+              </p>
+            </div>
+            <p className="text-body2 text-gray-700 leading-relaxed">{section.text}</p>
+          </div>
+        );
+      })}
+    </>
+  );
+}
 
 export default function DefensePage() {
   return (
@@ -26,10 +54,11 @@ function DefenseContent() {
   const fightId = searchParams.get('id');
   const [fight, setFight] = useState<Fight | null>(null);
   const [activeTab, setActiveTab] = useState<DefenseTab>('ai');
+  const [defenseSide, setDefenseSide] = useState<DefenseSide>('user');
   const [selfDefense, setSelfDefense] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
-  const [aiDefenseText, setAiDefenseText] = useState('');
+  const [aiDefenseSections, setAiDefenseSections] = useState<DefenseSectionData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
   const { balance, canAfford, refresh } = useTokens();
@@ -39,10 +68,12 @@ function DefenseContent() {
     getFight(fightId).then(setFight).catch(() => {});
   }, [fightId]);
 
+  const sideLabel = defenseSide === 'user' ? '내' : defenseSide === 'opponent' ? '상대' : '양쪽';
+
   const handleAIDefense = async () => {
     if (!fight || !fightId || isSubmitting) return;
 
-    if (!canAfford(2)) {
+    if (!canAfford(5)) {
       setShowAdModal(true);
       return;
     }
@@ -51,8 +82,8 @@ function DefenseContent() {
     setError(null);
 
     try {
-      const result = await submitDefense(fightId, null, 'ai');
-      setAiDefenseText(result.defense_text);
+      const result = await submitDefense(fightId, null, 'ai', defenseSide);
+      setAiDefenseSections(result.defense.sections);
       setAiGenerated(true);
       await refresh();
     } catch (err) {
@@ -69,16 +100,11 @@ function DefenseContent() {
   const handleSubmitSelfDefense = async () => {
     if (!fight || !fightId || isSubmitting || !selfDefense.trim()) return;
 
-    if (!canAfford(1)) {
-      setShowAdModal(true);
-      return;
-    }
-
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await submitDefense(fightId, selfDefense.trim(), 'self');
+      await submitDefense(fightId, selfDefense.trim(), 'self', defenseSide);
       await refresh();
       router.push(`/fight/appeal/?id=${fightId}`);
     } catch (err) {
@@ -107,7 +133,7 @@ function DefenseContent() {
   return (
     <div className="px-5 pb-24">
       <div className="pt-16 pb-4">
-        <h1 className="text-h2 text-gray-900">변호하기</h1>
+        <h1 className="text-h2 text-gray-900">변론 추가하기</h1>
         <p className="text-body2 text-gray-500 mt-1">추가 변론으로 판결을 뒤집어보세요</p>
       </div>
 
@@ -119,6 +145,37 @@ function DefenseContent() {
         </div>
       </div>
 
+      {/* Defense side selector */}
+      <div className="mb-4">
+        <label className="block text-body2 font-medium text-gray-700 mb-2">
+          누구의 변론을 만들까요?
+        </label>
+        <div className="flex gap-2">
+          {([
+            { value: 'user' as const, label: '내 편', icon: User },
+            { value: 'opponent' as const, label: '상대 편', icon: User },
+            { value: 'both' as const, label: '양쪽 다', icon: Users },
+          ]).map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              onClick={() => {
+                setDefenseSide(value);
+                setAiGenerated(false);
+                setAiDefenseSections([]);
+              }}
+              className={`flex-1 py-2.5 rounded-xl text-caption font-medium flex items-center justify-center gap-1.5 transition-colors ${
+                defenseSide === value
+                  ? 'bg-primary-400 text-white'
+                  : 'bg-gray-100 text-gray-600 active:bg-gray-200'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         <button
@@ -126,14 +183,14 @@ function DefenseContent() {
           onClick={() => setActiveTab('ai')}
         >
           <Bot className="w-4 h-4" />
-          AI 변호사 (2토큰)
+          AI 변호사 (5토큰)
         </button>
         <button
           className={`flex-1 py-2.5 rounded-xl text-body2 font-medium flex items-center justify-center gap-1.5 transition-colors ${activeTab === 'self' ? 'bg-primary-400 text-white' : 'bg-gray-100 text-gray-600'}`}
           onClick={() => setActiveTab('self')}
         >
           <PenLine className="w-4 h-4" />
-          직접 변호 (1토큰)
+          직접 변호 (무료)
         </button>
       </div>
 
@@ -147,7 +204,9 @@ function DefenseContent() {
           <div className="card text-center">
             <Bot className="w-12 h-12 text-primary-400 mx-auto mb-3" />
             <h3 className="text-body1 font-semibold text-gray-900 mb-1">AI 변호사</h3>
-            <p className="text-body2 text-gray-500 mb-4">AI가 당신의 입장을 대신 변호해드립니다</p>
+            <p className="text-body2 text-gray-500 mb-4">
+              {sideLabel} 입장을 AI가 대신 변호해드립니다
+            </p>
 
             {!aiGenerated ? (
               <button
@@ -161,21 +220,18 @@ function DefenseContent() {
                     변호문 작성 중...
                   </div>
                 ) : (
-                  '원클릭 변호 생성'
+                  `${sideLabel} 변론 생성`
                 )}
               </button>
             ) : (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-left">
-                <div className="bg-primary-50 rounded-xl p-4 mb-4">
-                  <p className="text-body2 font-medium text-primary-500 mb-2">AI 변호문</p>
-                  <p className="text-body2 text-gray-700 leading-relaxed">{aiDefenseText}</p>
-                </div>
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-left space-y-3">
+                <DefensePreview sections={aiDefenseSections} />
                 <button
                   onClick={handleGoToAppeal}
                   className="w-full py-3 rounded-xl font-semibold text-body1 bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2"
                 >
                   <Shield className="w-5 h-5" />
-                  이 변론으로 항소하기
+                  이 변론으로 재판결 받기
                 </button>
               </motion.div>
             )}
@@ -189,10 +245,10 @@ function DefenseContent() {
           <div className="card">
             <PenLine className="w-8 h-8 text-gray-400 mb-3" />
             <h3 className="text-body1 font-semibold text-gray-900 mb-1">직접 변호</h3>
-            <p className="text-body2 text-gray-500 mb-4">직접 추가 변론을 작성해주세요</p>
+            <p className="text-body2 text-gray-500 mb-4">{sideLabel} 입장에서 추가 변론을 작성해주세요</p>
             <textarea
               className="textarea-field h-36"
-              placeholder="내가 왜 덜 잘못했는지 추가로 설명해주세요..."
+              placeholder={defenseSide === 'opponent' ? '상대방이 왜 덜 잘못했는지 설명해주세요...' : defenseSide === 'both' ? '양쪽 입장을 모두 추가로 설명해주세요...' : '내가 왜 덜 잘못했는지 추가로 설명해주세요...'}
               maxLength={300}
               value={selfDefense}
               onChange={(e) => setSelfDefense(e.target.value)}
@@ -212,7 +268,7 @@ function DefenseContent() {
                 ) : (
                   <>
                     <Shield className="w-5 h-5" />
-                    변호 제출하기
+                    변론 제출하기
                   </>
                 )}
               </button>

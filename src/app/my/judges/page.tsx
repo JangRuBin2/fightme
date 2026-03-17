@@ -12,9 +12,12 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  RefreshCw,
+  Trash2,
 } from 'lucide-react';
-import { getMyJudges } from '@/lib/api/judges';
+import { getMyJudges, retryJudgeReview, deleteJudge } from '@/lib/api/judges';
 import { useStore } from '@/store/useStore';
+import { getErrorMessage } from '@/lib/errors';
 import type { Judge } from '@/types/database';
 
 function getStatusBadge(judge: Judge) {
@@ -32,18 +35,59 @@ export default function MyJudgesPage() {
   const { isLoggedIn } = useStore();
   const [judges, setJudges] = useState<Judge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+  const loadJudges = () => {
     if (!isLoggedIn) {
       setLoading(false);
       return;
     }
-
     getMyJudges()
       .then(setJudges)
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadJudges();
   }, [isLoggedIn]);
+
+  const handleRetry = async (judgeId: string) => {
+    setActionLoading(judgeId);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const result = await retryJudgeReview(judgeId);
+      if (result.approved) {
+        setSuccessMsg('AI 검토를 통과했습니다!');
+      } else {
+        setError(`재심사 거절: ${result.reviewReason || 'AI 검토 거절'}`);
+      }
+      loadJudges();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (judgeId: string, judgeName: string) => {
+    if (!confirm(`"${judgeName}" 판사를 삭제하시겠습니까?`)) return;
+    setActionLoading(judgeId);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await deleteJudge(judgeId);
+      setSuccessMsg('판사가 삭제되었습니다');
+      setJudges((prev) => prev.filter((j) => j.id !== judgeId));
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -70,6 +114,18 @@ export default function MyJudgesPage() {
         </p>
       </div>
 
+      {/* Messages */}
+      {error && (
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-body2 text-red-500 text-center mb-3">
+          {error}
+        </motion.p>
+      )}
+      {successMsg && (
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-body2 text-green-600 text-center mb-3">
+          {successMsg}
+        </motion.p>
+      )}
+
       {/* Judge List */}
       {judges.length === 0 ? (
         <div className="flex flex-col items-center justify-center min-h-[50vh]">
@@ -90,6 +146,9 @@ export default function MyJudgesPage() {
           {judges.map((judge, index) => {
             const status = getStatusBadge(judge);
             const StatusIcon = status.icon;
+            const isLoading = actionLoading === judge.id;
+            const canRetry = !judge.is_approved;
+            const canDelete = !judge.is_approved || judge.usage_count === 0;
 
             return (
               <motion.div
@@ -139,6 +198,38 @@ export default function MyJudgesPage() {
                         </span>
                       )}
                     </div>
+
+                    {/* Action buttons for non-approved judges */}
+                    {(canRetry || canDelete) && (
+                      <div className="flex gap-2 mt-3">
+                        {canRetry && (
+                          <button
+                            onClick={() => handleRetry(judge.id)}
+                            disabled={isLoading}
+                            className="flex-1 py-2 rounded-lg bg-primary-400 text-white text-caption font-medium flex items-center justify-center gap-1 active:bg-primary-500 disabled:opacity-50"
+                          >
+                            {isLoading ? (
+                              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                재심사 요청
+                              </>
+                            )}
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(judge.id, judge.name)}
+                            disabled={isLoading}
+                            className="py-2 px-3 rounded-lg border border-gray-200 text-gray-500 text-caption font-medium flex items-center justify-center gap-1 active:bg-gray-100 disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            삭제
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </motion.div>

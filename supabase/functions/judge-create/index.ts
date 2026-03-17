@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     );
 
     // Step 3: Spend 100 tokens
-    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_CREATE_COST, 'FIGHT_JUDGE');
+    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_CREATE_COST, 'JUDGE_CREATE');
     if (newBalance === null) {
       return new Response(
         JSON.stringify({ error: `토큰이 부족합니다 (${JUDGE_CREATE_COST}개 필요)`, code: 'INSUFFICIENT_TOKENS' }),

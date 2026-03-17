@@ -120,6 +120,8 @@ function ResultContent() {
           <FaultGauge
             myFault={fight.user_fault}
             opponentFault={fight.opponent_fault}
+            myName={fight.user_name || '나'}
+            opponentName={fight.opponent_name || '상대'}
             animated
           />
         </motion.div>

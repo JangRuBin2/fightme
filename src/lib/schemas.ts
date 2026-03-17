@@ -3,10 +3,30 @@ import { z } from 'zod';
 
 // ── Base entity schemas ──
 
+const defenseSectionSchema = z.object({
+  side: z.enum(['user', 'opponent']),
+  text: z.string(),
+});
+
+const defenseDataSchema = z.object({
+  sections: z.array(defenseSectionSchema),
+});
+
+const originalVerdictSchema = z.object({
+  judge_id: z.string(),
+  user_fault: z.number().nullable(),
+  opponent_fault: z.number().nullable(),
+  comment: z.string().nullable(),
+  verdict_detail: z.string().nullable(),
+  defense: defenseDataSchema.nullable().optional(),
+});
+
 export const fightSchema = z.object({
   id: z.string(),
   user_id: z.string(),
   judge_id: z.string(),
+  user_name: z.string().nullable().optional(),
+  opponent_name: z.string().nullable().optional(),
   user_claim: z.string(),
   opponent_claim: z.string(),
   user_fault: z.number().nullable(),
@@ -14,7 +34,8 @@ export const fightSchema = z.object({
   comment: z.string().nullable(),
   verdict_detail: z.string().nullable(),
   stage: z.enum(['INITIAL', 'APPEAL']),
-  defense: z.string().nullable(),
+  defense: defenseDataSchema.nullable().optional(),
+  original_verdict: originalVerdictSchema.nullable().optional(),
   is_revealed: z.boolean(),
   created_at: z.string(),
 });
@@ -61,6 +82,7 @@ export const appealResponseSchema = z.object({
 });
 
 export const defenseResponseSchema = z.object({
+  defense: defenseDataSchema,
   defense_text: z.string(),
   fight: fightSchema,
   tokenBalance: z.number(),
@@ -71,6 +93,12 @@ export const createJudgeResponseSchema = z.object({
   approved: z.boolean(),
   reviewReason: z.string(),
   tokenBalance: z.number(),
+});
+
+export const judgeManageResponseSchema = z.object({
+  success: z.boolean(),
+  approved: z.boolean().optional(),
+  reviewReason: z.string().optional(),
 });
 
 export const adRewardResponseSchema = z.object({
@@ -84,6 +112,18 @@ export const authSessionSchema = z.object({
   access_token: z.string(),
   refresh_token: z.string(),
   expires_in: z.number().optional(),
+});
+
+export const iapActivateResponseSchema = z.object({
+  success: z.boolean(),
+  data: z.object({
+    orderId: z.string(),
+    sku: z.string(),
+    activatedAt: z.string(),
+    tokenBalance: z.number().optional(),
+    isPremium: z.boolean().optional(),
+  }).optional(),
+  error: z.string().optional(),
 });
 
 export const authResponseSchema = z.object({
