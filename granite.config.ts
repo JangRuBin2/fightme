@@ -4,7 +4,7 @@ export default defineConfig({
   appName: 'fightme',
   brand: {
     displayName: '나랑 싸울래?',
-    icon: '',
+    icon: 'https://static.toss.im/appsintoss/20071/daf30744-00e2-466b-8364-9cb5ac069932.png',
     primaryColor: '#FF6B6B',
   },
   navigationBar: {

@@ -106,22 +106,22 @@ export const IAP_PRODUCT_INFO: Record<string, {
 }> = {
   [IAP_PRODUCTS.TOKEN_30]: {
     name: '토큰 30개',
-    description: '판결 10회 분량',
+    description: '판결 10회분',
     price: '990원',
     tokenAmount: 30,
     type: 'token',
   },
   [IAP_PRODUCTS.TOKEN_100]: {
     name: '토큰 100개',
-    description: '판결 33회 분량',
-    price: '2,490원',
+    description: '판결 33회분',
+    price: '2,200원',
     tokenAmount: 100,
     type: 'token',
   },
   [IAP_PRODUCTS.TOKEN_300]: {
     name: '토큰 300개',
-    description: '판결 100회 분량',
-    price: '6,900원',
+    description: '판결 100회분',
+    price: '6,600원',
     tokenAmount: 300,
     type: 'token',
   },
