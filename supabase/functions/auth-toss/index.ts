@@ -251,6 +251,12 @@ Deno.serve(async (req) => {
       }
 
       // Create profile with initial tokens
+      if (!signUpData.user) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Failed to create user' }),
+          { status: 500, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        );
+      }
       await supabaseAdmin.from('profiles').upsert({
         id: signUpData.user.id,
         nickname: null,

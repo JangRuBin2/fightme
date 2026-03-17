@@ -37,6 +37,18 @@ export async function callEdgeFunction<T>(
   const url = `${SUPABASE_URL}/functions/v1/${functionName}`;
 
   const supabase = createClient();
+
+  // getUser() triggers token refresh if expired; getSession() only reads cache
+  const { error: userError } = await supabase.auth.getUser();
+  if (userError) {
+    // Token refresh failed - try explicit refresh
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      handleAuthFailure();
+      throw createEdgeError('로그인이 필요합니다', 'AUTH_REQUIRED', 401);
+    }
+  }
+
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
     handleAuthFailure();
@@ -48,7 +60,6 @@ export async function callEdgeFunction<T>(
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${session.access_token}`,
-      'apikey': SUPABASE_ANON_KEY,
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });

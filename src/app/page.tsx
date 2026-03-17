@@ -17,11 +17,15 @@ export default function HomePage() {
   const {
     isLoggedIn,
     currentFight,
+    setUserName: storeSetUserName,
+    setOpponentName: storeSetOpponentName,
     setUserClaim: storeSetUserClaim,
     setOpponentClaim: storeSetOpponentClaim,
     setJudgeId: storeSetJudgeId,
     resetFight,
   } = useStore();
+  const userName = currentFight.userName;
+  const opponentName = currentFight.opponentName;
   const userClaim = currentFight.userClaim;
   const opponentClaim = currentFight.opponentClaim;
   const selectedJudge = currentFight.judgeId;
@@ -53,7 +57,13 @@ export default function HomePage() {
     setError(null);
 
     try {
-      const result = await createFight(userClaim.trim(), opponentClaim.trim(), selectedJudge!);
+      const result = await createFight(
+        userClaim.trim(),
+        opponentClaim.trim(),
+        selectedJudge!,
+        userName.trim() || undefined,
+        opponentName.trim() || undefined,
+      );
       resetFight();
       router.push(`/fight/?id=${result.fight.id}`);
     } catch (err) {
@@ -89,15 +99,48 @@ export default function HomePage() {
         )}
       </motion.div>
 
-      {/* User Claim */}
+      {/* Names */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
+        className="mb-4 flex gap-3"
+      >
+        <div className="flex-1">
+          <label className="block text-body2 font-medium text-gray-700 mb-2">
+            내 이름
+          </label>
+          <input
+            className="input-field"
+            placeholder="예: 철수"
+            maxLength={10}
+            value={userName}
+            onChange={(e) => storeSetUserName(e.target.value)}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-body2 font-medium text-gray-700 mb-2">
+            상대 이름
+          </label>
+          <input
+            className="input-field"
+            placeholder="예: 영희"
+            maxLength={10}
+            value={opponentName}
+            onChange={(e) => storeSetOpponentName(e.target.value)}
+          />
+        </div>
+      </motion.div>
+
+      {/* User Claim */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
         className="mb-4"
       >
         <label className="block text-body2 font-medium text-gray-700 mb-2">
-          내 주장
+          {userName || '내'} 주장
         </label>
         <textarea
           className="textarea-field h-28"
@@ -119,7 +162,7 @@ export default function HomePage() {
         className="mb-6"
       >
         <label className="block text-body2 font-medium text-gray-700 mb-2">
-          상대 주장
+          {opponentName || '상대'} 주장
         </label>
         <textarea
           className="textarea-field h-28"

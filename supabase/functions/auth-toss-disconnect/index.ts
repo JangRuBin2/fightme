@@ -63,9 +63,20 @@ Deno.serve(async (req) => {
     const tossUserKey = String(userKey);
     const tossEmail = `toss_${tossUserKey}@fightme.internal`;
 
-    // Find user by email (since profiles table doesn't have toss_user_key)
-    const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-    const targetUser = users?.find((u) => u.email === tossEmail);
+    // Find user by email with pagination
+    let targetUser = null;
+    let page = 1;
+    const perPage = 50;
+    while (!targetUser) {
+      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+      if (listError || !users || users.length === 0) break;
+      targetUser = users.find((u) => u.email === tossEmail) ?? null;
+      if (users.length < perPage) break;
+      page++;
+    }
 
     if (!targetUser) {
       return new Response(

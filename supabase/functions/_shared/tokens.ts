@@ -18,8 +18,8 @@ export async function checkTokenBalance(
 }
 
 /**
- * Atomically spend tokens — fails if insufficient balance.
- * Returns the new balance or null if insufficient.
+ * Spend tokens. Read current balance, check, then write decremented value.
+ * Returns new balance or null if insufficient.
  */
 export async function spendTokens(
   supabase: SupabaseClient,
@@ -27,50 +27,27 @@ export async function spendTokens(
   amount: number,
   reason: TokenReason
 ): Promise<number | null> {
-  // Atomic: UPDATE ... WHERE token >= amount RETURNING token
-  const { data, error } = await supabase.rpc('spend_tokens', {
-    p_user_id: userId,
-    p_amount: amount,
-  });
+  // Read current balance
+  const { data: profile, error: readError } = await supabase
+    .from('profiles')
+    .select('token')
+    .eq('id', userId)
+    .single();
 
-  // If RPC not available, fallback to manual update
-  if (error?.message?.includes('function') || error?.code === '42883') {
-    // Fallback: manual atomic update
-    const { data: profile, error: updateError } = await supabase
-      .from('profiles')
-      .update({ token: supabase.rpc ? undefined : 0 }) // placeholder
-      .eq('id', userId)
-      .select('token')
-      .single();
+  if (readError || !profile) return null;
 
-    // Use raw SQL-like approach via update
-    const { data: updated, error: err2 } = await supabase
-      .from('profiles')
-      .select('token')
-      .eq('id', userId)
-      .single();
+  const currentBalance = profile.token ?? 0;
+  if (currentBalance < amount) return null;
 
-    if (err2 || !updated || updated.token < amount) return null;
+  const newBalance = currentBalance - amount;
 
-    const newBalance = updated.token - amount;
-    const { error: err3 } = await supabase
-      .from('profiles')
-      .update({ token: newBalance })
-      .eq('id', userId);
+  // Write decremented balance
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ token: newBalance, updated_at: new Date().toISOString() })
+    .eq('id', userId);
 
-    if (err3) return null;
-
-    // Log the spend
-    await supabase.from('token_logs').insert({
-      user_id: userId,
-      amount: -amount,
-      reason,
-    });
-
-    return newBalance;
-  }
-
-  if (error || data === null || data === undefined) return null;
+  if (updateError) return null;
 
   // Log the spend
   await supabase.from('token_logs').insert({
@@ -79,11 +56,11 @@ export async function spendTokens(
     reason,
   });
 
-  return data as number;
+  return newBalance;
 }
 
 /**
- * Grant tokens to user
+ * Grant tokens to user.
  */
 export async function grantTokens(
   supabase: SupabaseClient,
@@ -91,7 +68,6 @@ export async function grantTokens(
   amount: number,
   reason: TokenReason
 ): Promise<number | null> {
-  // Get current balance
   const { data: profile, error: fetchError } = await supabase
     .from('profiles')
     .select('token')
@@ -100,16 +76,15 @@ export async function grantTokens(
 
   if (fetchError || !profile) return null;
 
-  const newBalance = profile.token + amount;
+  const newBalance = (profile.token ?? 0) + amount;
 
   const { error: updateError } = await supabase
     .from('profiles')
-    .update({ token: newBalance })
+    .update({ token: newBalance, updated_at: new Date().toISOString() })
     .eq('id', userId);
 
   if (updateError) return null;
 
-  // Log the grant
   await supabase.from('token_logs').insert({
     user_id: userId,
     amount,

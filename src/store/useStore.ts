@@ -4,6 +4,8 @@ import { persist } from 'zustand/middleware';
 type ThemeId = 'warm' | 'dark-court' | 'neon-fight';
 
 interface CurrentFight {
+  userName: string;
+  opponentName: string;
   userClaim: string;
   opponentClaim: string;
   judgeId: string | null;
@@ -28,6 +30,8 @@ interface AppState {
 
   // Current fight in progress
   currentFight: CurrentFight;
+  setUserName: (name: string) => void;
+  setOpponentName: (name: string) => void;
   setUserClaim: (claim: string) => void;
   setOpponentClaim: (claim: string) => void;
   setJudgeId: (id: string) => void;
@@ -35,6 +39,8 @@ interface AppState {
 }
 
 const initialFight: CurrentFight = {
+  userName: '',
+  opponentName: '',
   userClaim: '',
   opponentClaim: '',
   judgeId: null,
@@ -64,6 +70,14 @@ export const useStore = create<AppState>()(
 
       // Current fight in progress
       currentFight: { ...initialFight },
+      setUserName: (name) =>
+        set((state) => ({
+          currentFight: { ...state.currentFight, userName: name },
+        })),
+      setOpponentName: (name) =>
+        set((state) => ({
+          currentFight: { ...state.currentFight, opponentName: name },
+        })),
       setUserClaim: (claim) =>
         set((state) => ({
           currentFight: { ...state.currentFight, userClaim: claim },

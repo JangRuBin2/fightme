@@ -6,12 +6,16 @@ import { motion } from 'framer-motion';
 interface FaultGaugeProps {
   myFault: number;
   opponentFault: number;
+  myName?: string;
+  opponentName?: string;
   animated?: boolean;
 }
 
 export default function FaultGauge({
   myFault,
   opponentFault,
+  myName = '나',
+  opponentName = '상대',
   animated = true,
 }: FaultGaugeProps) {
   const [displayMyFault, setDisplayMyFault] = useState(animated ? 0 : myFault);
@@ -55,10 +59,10 @@ export default function FaultGauge({
       {/* Labels */}
       <div className="flex justify-between text-body2 font-medium">
         <span className="text-primary-400">
-          나 <span className="font-bold">{displayMyFault}%</span>
+          {myName} <span className="font-bold">{displayMyFault}%</span>
         </span>
         <span className="text-accent-400">
-          상대 <span className="font-bold">{displayOpponentFault}%</span>
+          {opponentName} <span className="font-bold">{displayOpponentFault}%</span>
         </span>
       </div>
 

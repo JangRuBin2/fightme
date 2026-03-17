@@ -8,12 +8,12 @@ import type { Judge, JudgeVote } from '@/types/database';
 
 export interface CreateJudgeWizardData {
   name: string;
+  speech_style: string;
   q1: string;
   q2: string;
   q3: string;
   q4: string;
   q5: string;
-  q6: string;
 }
 
 // Judge list (official/user filter)

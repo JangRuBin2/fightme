@@ -1,41 +1,45 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
-import { spendTokens } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
+
+const JUDGMENT_SCHEMA = {
+  type: 'object' as const,
+  properties: {
+    user_fault: { type: 'integer' as const, description: '원고 과실 비율 0-100' },
+    opponent_fault: { type: 'integer' as const, description: '피고 과실 비율 0-100' },
+    comment: { type: 'string' as const, description: '한줄 판결 50자 이내' },
+    verdict_detail: { type: 'string' as const, description: '판결 이유 2~3문장, 300자 이내' },
+  },
+  required: ['user_fault', 'opponent_fault', 'comment', 'verdict_detail'],
+};
 
 function buildUserPrompt(
   judge: { name: string; prompt: string },
   userClaim: string,
-  opponentClaim: string
+  opponentClaim: string,
+  userName: string,
+  opponentName: string,
 ): string {
   return `너는 "${judge.name}" 판사다.
 
 아래 싸움을 판결해라.
 
-[원고 주장]: ${userClaim}
-[피고 주장]: ${opponentClaim}
+[원고(${userName}) 주장]: ${userClaim}
+[피고(${opponentName}) 주장]: ${opponentClaim}
 
-반드시 아래 JSON 형식으로만 응답해. 다른 텍스트는 절대 포함하지 마.
-{"user_fault":0-100,"opponent_fault":0-100,"comment":"한줄 판결 40자 이내","verdict_detail":"판결 이유 200자 이내"}
-
+판결할 때 원고를 "${userName}", 피고를 "${opponentName}"이라고 불러라.
 주의: user_fault + opponent_fault = 100. 캐릭터에 맞는 말투로 재미있게 판결해라.`;
 }
 
 async function getJudgment(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
-  const text = await callGemini({ systemPrompt, userPrompt, maxTokens: 1024 });
-  const parsed = extractJson<JudgmentResponse>(text);
-
-  if (
-    typeof parsed.user_fault !== 'number' ||
-    typeof parsed.opponent_fault !== 'number' ||
-    typeof parsed.comment !== 'string' ||
-    typeof parsed.verdict_detail !== 'string'
-  ) {
-    throw new Error('Invalid judgment response structure');
-  }
-
-  return parsed;
+  const text = await callGemini({
+    systemPrompt,
+    userPrompt,
+    maxTokens: 4096,
+    responseSchema: JUDGMENT_SCHEMA,
+  });
+  return extractJson<JudgmentResponse>(text, JUDGMENT_SCHEMA);
 }
 
 Deno.serve(async (req) => {
@@ -61,7 +65,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { user_claim, opponent_claim, judge_id } = await req.json();
+    const { user_claim, opponent_claim, judge_id, user_name, opponent_name } = await req.json();
 
     if (!user_claim || !opponent_claim || !judge_id) {
       return new Response(
@@ -86,9 +90,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Ensure profile exists (fights.user_id references profiles.id)
+    await supabaseAdmin.from('profiles').upsert(
+      { id: user.id, updated_at: new Date().toISOString() },
+      { onConflict: 'id', ignoreDuplicates: true }
+    );
+
     // Call Gemini API
     const systemPrompt = judge.prompt;
-    const userPrompt = buildUserPrompt(judge, user_claim, opponent_claim);
+    const userName = user_name || '원고';
+    const opponentNameStr = opponent_name || '피고';
+    const userPrompt = buildUserPrompt(judge, user_claim, opponent_claim, userName, opponentNameStr);
     const judgment = await getJudgment(systemPrompt, userPrompt);
 
     // Create fight record with verdict data merged
@@ -114,13 +126,13 @@ Deno.serve(async (req) => {
     }
 
     // Increment judge usage_count
-    await supabaseAdmin
+    const { error: usageError } = await supabaseAdmin
       .from('judges')
       .update({ usage_count: judge.usage_count + 1 })
-      .eq('id', judge_id)
-      .catch(() => {
-        console.warn('Failed to increment judge usage_count');
-      });
+      .eq('id', judge_id);
+    if (usageError) {
+      console.warn('Failed to increment judge usage_count:', usageError.message);
+    }
 
     return new Response(
       JSON.stringify({ success: true, fight }),

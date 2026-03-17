@@ -36,9 +36,20 @@ function buildAppealUserPrompt(
   return prompt;
 }
 
+const JUDGMENT_SCHEMA = {
+  type: 'object' as const,
+  properties: {
+    user_fault: { type: 'integer' as const, description: '원고 과실 비율 0-100' },
+    opponent_fault: { type: 'integer' as const, description: '피고 과실 비율 0-100' },
+    comment: { type: 'string' as const, description: '한줄 판결 40자 이내' },
+    verdict_detail: { type: 'string' as const, description: '판결 이유 200자 이내' },
+  },
+  required: ['user_fault', 'opponent_fault', 'comment', 'verdict_detail'],
+};
+
 async function getJudgment(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
-  const text = await callGemini({ systemPrompt, userPrompt, maxTokens: 1024 });
-  return extractJson<JudgmentResponse>(text);
+  const text = await callGemini({ systemPrompt, userPrompt, maxTokens: 4096, responseSchema: JUDGMENT_SCHEMA });
+  return extractJson<JudgmentResponse>(text, JUDGMENT_SCHEMA);
 }
 
 Deno.serve(async (req) => {

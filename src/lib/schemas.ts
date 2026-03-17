@@ -68,6 +68,9 @@ export const defenseResponseSchema = z.object({
 
 export const createJudgeResponseSchema = z.object({
   judge: judgeSchema,
+  approved: z.boolean(),
+  reviewReason: z.string(),
+  tokenBalance: z.number(),
 });
 
 export const adRewardResponseSchema = z.object({

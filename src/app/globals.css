@@ -173,8 +173,8 @@ html {
     transition: background-color 0.3s, color 0.3s;
   }
 
-  /* Prevent pull-to-refresh in WebView */
-  html, body {
+  /* Prevent horizontal scroll in WebView (only on html, not body - to avoid blocking scroll layer) */
+  html {
     overflow-x: hidden;
   }
 }

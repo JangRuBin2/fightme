@@ -11,9 +11,12 @@ export function useTokens() {
     if (!isLoggedIn) return;
     try {
       const balance = await getTokenBalance();
-      setTokenBalance(balance);
+      if (balance !== null) {
+        setTokenBalance(balance);
+      }
+      // null means fetch failed - keep existing store value
     } catch {
-      // silent fail
+      // silent fail - keep existing store value
     }
   }, [isLoggedIn, setTokenBalance]);
 

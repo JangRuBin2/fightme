@@ -17,10 +17,18 @@ import type { Fight, Judge } from '@/types/database';
 export async function createFight(
   userClaim: string,
   opponentClaim: string,
-  judgeId: string
+  judgeId: string,
+  userName?: string,
+  opponentName?: string,
 ) {
   return callEdgeFunction('fight-judge', createFightResponseSchema, {
-    body: { user_claim: userClaim, opponent_claim: opponentClaim, judge_id: judgeId },
+    body: {
+      user_claim: userClaim,
+      opponent_claim: opponentClaim,
+      judge_id: judgeId,
+      user_name: userName,
+      opponent_name: opponentName,
+    },
   });
 }
 

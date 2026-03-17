@@ -27,40 +27,30 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createAdminClient();
     const userId = user.id;
 
-    // Explicitly delete user data from all tables before deleting auth user
-    // This ensures cleanup even if CASCADE constraints are misconfigured
-    const tables = [
-      'subscriptions',
-      'judge_votes',
-      'verdicts',
-      'fights',
-    ];
+    // Delete user data from existing tables
+    const tablesToClean = ['token_logs', 'judge_votes', 'fights'];
 
-    for (const table of tables) {
-      if (table === 'verdicts') {
-        // Delete verdicts for user's fights
-        const { data: userFights } = await supabaseAdmin
-          .from('fights')
-          .select('id')
-          .eq('user_id', userId);
-
-        if (userFights && userFights.length > 0) {
-          const fightIds = userFights.map((f: { id: string }) => f.id);
-          await supabaseAdmin.from('verdicts').delete().in('fight_id', fightIds);
-        }
-      } else {
-        await supabaseAdmin.from(table).delete().eq('user_id', userId);
+    for (const table of tablesToClean) {
+      const { error } = await supabaseAdmin.from(table).delete().eq('user_id', userId);
+      if (error) {
+        console.warn(`Failed to delete from ${table}:`, error.message);
       }
     }
 
     // Set created_by to null for user-created judges (don't delete them)
-    await supabaseAdmin
+    const { error: judgeError } = await supabaseAdmin
       .from('judges')
       .update({ created_by: null })
       .eq('created_by', userId);
+    if (judgeError) {
+      console.warn('Failed to unlink judges:', judgeError.message);
+    }
 
-    // Delete profile (which is the FK root for most tables)
-    await supabaseAdmin.from('profiles').delete().eq('id', userId);
+    // Delete profile
+    const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', userId);
+    if (profileError) {
+      console.warn('Failed to delete profile:', profileError.message);
+    }
 
     // Delete auth user
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);

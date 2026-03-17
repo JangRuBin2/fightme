@@ -185,14 +185,14 @@ function FightResultContent() {
                 className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2"
               >
                 <Shield className="w-5 h-5" />
-                변호하기
+                변론 추가하기
               </Link>
               <Link
                 href={`/fight/appeal/?id=${fightId}`}
                 className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center border-2 border-primary-400 text-primary-400 active:bg-primary-50 flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-5 h-5" />
-                항소하기 (토큰 2개)
+                판사 바꿔서 다시 판결 (토큰 2개)
               </Link>
               {fight.is_revealed && (
                 <ShareButton fightId={fight.id} comment={fight.comment || undefined} />

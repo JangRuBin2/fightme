@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Sparkles, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, AlertTriangle, Coins } from 'lucide-react';
 
 interface WizardStep {
   question: string;
@@ -26,15 +26,6 @@ const WIZARD_STEPS: WizardStep[] = [
       { value: '공감', label: '양쪽 마음', emoji: '🤝' },
       { value: '재미', label: '재미와 위트', emoji: '😂' },
       { value: '교훈', label: '교훈과 성장', emoji: '🌱' },
-    ],
-  },
-  {
-    question: '어떤 말투를 사용하나요?',
-    options: [
-      { value: '반말', label: '반말 (야, 이건...)' , emoji: '😤' },
-      { value: '존댓말', label: '존댓말 (제 판결은...)' , emoji: '🎩' },
-      { value: '사투리', label: '사투리 (아이가...)' , emoji: '🏔️' },
-      { value: '인터넷', label: '인터넷체 (ㄹㅇ...)' , emoji: '📱' },
     ],
   },
   {
@@ -66,46 +57,54 @@ const WIZARD_STEPS: WizardStep[] = [
   },
 ];
 
+// Steps: 0=name, 1=speechStyle, 2~6=questions
+const TOTAL_STEPS = 2 + WIZARD_STEPS.length; // name + speechStyle + 5 questions
+
 interface JudgeCreateWizardProps {
   onComplete: (data: {
     name: string;
+    speech_style: string;
     q1: string;
     q2: string;
     q3: string;
     q4: string;
     q5: string;
-    q6: string;
   }) => void;
   isSubmitting: boolean;
 }
 
 export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCreateWizardProps) {
-  const [step, setStep] = useState(0); // 0 = name input, 1-6 = questions
+  const [step, setStep] = useState(0);
   const [name, setName] = useState('');
-  const [answers, setAnswers] = useState<string[]>(Array(6).fill(''));
+  const [speechStyle, setSpeechStyle] = useState('');
+  const [answers, setAnswers] = useState<string[]>(Array(WIZARD_STEPS.length).fill(''));
 
   const isNameStep = step === 0;
-  const questionIndex = step - 1;
-  const totalSteps = WIZARD_STEPS.length + 1; // +1 for name step
-  const isLastStep = step === totalSteps - 1;
-  const progress = ((step + 1) / totalSteps) * 100;
+  const isSpeechStep = step === 1;
+  const questionIndex = step - 2;
+  const isLastStep = step === TOTAL_STEPS - 1;
+  const progress = ((step + 1) / TOTAL_STEPS) * 100;
 
-  const canProceed = isNameStep ? name.trim().length > 0 : answers[questionIndex] !== '';
+  const canProceed = isNameStep
+    ? name.trim().length > 0
+    : isSpeechStep
+      ? speechStyle.trim().length > 0
+      : answers[questionIndex] !== '';
 
   const handleNext = () => {
     if (isLastStep && canProceed) {
       onComplete({
         name: name.trim(),
+        speech_style: speechStyle.trim(),
         q1: answers[0],
         q2: answers[1],
         q3: answers[2],
         q4: answers[3],
         q5: answers[4],
-        q6: answers[5],
       });
       return;
     }
-    if (canProceed && step < totalSteps - 1) {
+    if (canProceed && step < TOTAL_STEPS - 1) {
       setStep(step + 1);
     }
   };
@@ -132,11 +131,17 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
       </div>
 
       {/* Warning */}
-      <div className="bg-amber-50 rounded-xl p-3 mb-5 flex items-start gap-2">
+      <div className="bg-amber-50 rounded-xl p-3 mb-3 flex items-start gap-2">
         <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
         <p className="text-caption text-amber-700">
-          부적절한 내용의 판사는 AI 검토 후 거절될 수 있습니다
+          부적절한 표현(혐오/성적 용어 등) 사용 시 생성이 거절됩니다
         </p>
+      </div>
+
+      {/* Cost info */}
+      <div className="flex items-center gap-1 mb-5 px-1">
+        <Coins className="w-3.5 h-3.5 text-accent-500" />
+        <span className="text-caption text-accent-600 font-medium">판사 생성 비용: 100 토큰</span>
       </div>
 
       {/* Step Content */}
@@ -163,13 +168,28 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
                 />
                 <p className="text-caption text-gray-400 text-right mt-1">{name.length}/20</p>
               </div>
+            ) : isSpeechStep ? (
+              <div>
+                <h2 className="text-h3 text-gray-900 mb-2">판사의 말투를 설정해주세요</h2>
+                <p className="text-body2 text-gray-500 mb-6">
+                  직접 입력해서 원하는 말투를 자유롭게 설정하세요
+                </p>
+                <textarea
+                  className="textarea-field h-32"
+                  placeholder={'예: 부산 사투리를 쓰고, "아이가~ 이건 니 잘못이다 카이~" 같은 말투. 항상 반말로 직설적으로 말하고, 판결 끝에 "알겠나?" 를 붙인다.'}
+                  maxLength={200}
+                  value={speechStyle}
+                  onChange={(e) => setSpeechStyle(e.target.value)}
+                />
+                <p className="text-caption text-gray-400 text-right mt-1">{speechStyle.length}/200</p>
+              </div>
             ) : (
               <div>
                 <h2 className="text-h3 text-gray-900 mb-2">
                   Q{questionIndex + 1}. {WIZARD_STEPS[questionIndex].question}
                 </h2>
                 <p className="text-body2 text-gray-500 mb-6">
-                  {step}/{totalSteps - 1}
+                  {questionIndex + 1}/{WIZARD_STEPS.length}
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   {WIZARD_STEPS[questionIndex].options.map((option) => (
@@ -193,8 +213,20 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
         </AnimatePresence>
       </div>
 
+      {/* Notice */}
+      <div className="mt-6 rounded-xl bg-gray-100 p-4 space-y-1.5">
+        <p className="text-caption font-medium text-gray-600">주의사항</p>
+        <ul className="text-caption text-gray-500 space-y-1 list-disc list-inside">
+          <li>판사 생성에는 100 토큰이 소모됩니다</li>
+          <li>부적절한 표현 감지 시 토큰 소모 없이 재입력됩니다</li>
+          <li>AI 심사에서 거절될 경우 토큰이 소모됩니다</li>
+          <li>혐오 발언, 성적 표현 등 부적절한 용어는 사용할 수 없습니다</li>
+          <li>생성된 판사는 다른 유저도 사용할 수 있습니다</li>
+        </ul>
+      </div>
+
       {/* Navigation */}
-      <div className="flex gap-3 mt-6">
+      <div className="flex gap-3 mt-4">
         {step > 0 && (
           <button
             onClick={handleBack}
@@ -217,7 +249,7 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
           ) : isLastStep ? (
             <>
               <Sparkles className="w-5 h-5" />
-              판사 생성하기
+              판사 생성하기 (100 토큰)
             </>
           ) : (
             <>
