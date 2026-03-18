@@ -1,6 +1,6 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
-import { spendTokens } from '../_shared/tokens.ts';
+import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import { validateInputs } from '../_shared/validate.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
@@ -113,9 +113,9 @@ Deno.serve(async (req) => {
       { onConflict: 'id', ignoreDuplicates: true }
     );
 
-    // Spend 3 tokens for judgment
-    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_COST, 'FIGHT_JUDGE');
-    if (newBalance === null) {
+    // Check balance first (spend after success)
+    const canAfford = await checkTokenBalance(supabaseAdmin, user.id, JUDGE_COST);
+    if (!canAfford) {
       return new Response(
         JSON.stringify({ error: '토큰이 부족합니다 (3개 필요)', code: 'INSUFFICIENT_TOKENS' }),
         { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -160,6 +160,9 @@ Deno.serve(async (req) => {
     if (fightError || !fight) {
       throw new Error(`Failed to create fight: ${fightError?.message}`);
     }
+
+    // All succeeded — now spend tokens
+    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_COST, 'FIGHT_JUDGE');
 
     // Increment judge usage_count
     const { error: usageError } = await supabaseAdmin

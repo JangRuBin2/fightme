@@ -65,6 +65,24 @@ export async function getUserFights(userId: string): Promise<Fight[]> {
   return safeParseArray(fightSchema, data ?? []) as Fight[];
 }
 
+// Get the most recent fight (for pending result detection)
+export async function getLatestFight(): Promise<Fight | null> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('fights')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) return null;
+  return safeParseSingle(fightSchema, data) as Fight | null;
+}
+
 // Reveal verdict (spend 2 tokens) (Edge Function)
 export async function revealFight(fightId: string) {
   return callEdgeFunction('fight-reveal', revealFightResponseSchema, {

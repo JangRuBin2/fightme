@@ -11,10 +11,12 @@ interface VerdictImageData {
 }
 
 const WIDTH = 720;
-const HEIGHT = 960;
 const PADDING = 48;
+const CARD_PAD = 40;
+const LINE_HEIGHT = 26;
+const CLAIM_FONT = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+const COMMENT_FONT = 'italic 22px -apple-system, BlinkMacSystemFont, sans-serif';
 
-// Warm 테마 기본 색상
 const COLORS = {
   bg: '#FAFAF7',
   card: '#FFFFFF',
@@ -48,7 +50,6 @@ function wrapText(
   ctx: CanvasRenderingContext2D,
   text: string,
   maxWidth: number,
-  maxLines: number,
 ): string[] {
   const lines: string[] = [];
   const chars = [...text];
@@ -59,10 +60,6 @@ function wrapText(
     if (ctx.measureText(testLine).width > maxWidth && currentLine.length > 0) {
       lines.push(currentLine);
       currentLine = char;
-      if (lines.length >= maxLines) {
-        lines[lines.length - 1] += '...';
-        return lines;
-      }
     } else {
       currentLine = testLine;
     }
@@ -72,21 +69,47 @@ function wrapText(
 }
 
 export function generateVerdictImage({ fight, judgeName }: VerdictImageData): string {
-  const canvas = document.createElement('canvas');
-  canvas.width = WIDTH;
-  canvas.height = HEIGHT;
-  const ctx = canvas.getContext('2d')!;
-
   const myName = fight.user_name || '나';
   const theirName = fight.opponent_name || '상대';
   const myFault = fight.user_fault ?? 50;
   const theirFault = fight.opponent_fault ?? 50;
 
-  // Background
+  const gaugeX = PADDING + CARD_PAD;
+  const gaugeW = WIDTH - (PADDING + CARD_PAD) * 2;
+  const claimW = (gaugeW - 16) / 2;
+  const claimTextW = claimW - 32;
+
+  // 사전 측정용 임시 캔버스
+  const measure = document.createElement('canvas').getContext('2d')!;
+  measure.font = CLAIM_FONT;
+  const myClaimLines = wrapText(measure, fight.user_claim, claimTextW);
+  const theirClaimLines = wrapText(measure, fight.opponent_claim, claimTextW);
+  const maxClaimLines = Math.max(myClaimLines.length, theirClaimLines.length);
+  const claimH = 40 + maxClaimLines * LINE_HEIGHT + 16; // 제목 + 라인들 + 패딩
+
+  measure.font = COMMENT_FONT;
+  const commentLines = fight.comment ? wrapText(measure, `"${fight.comment}"`, gaugeW - 48) : [];
+  const commentH = fight.comment ? 32 + commentLines.length * 30 + 16 : 0;
+
+  const DETAIL_FONT = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+  measure.font = DETAIL_FONT;
+  const detailLines = fight.verdict_detail ? wrapText(measure, fight.verdict_detail, gaugeW - 48) : [];
+  const detailH = detailLines.length > 0 ? 36 + detailLines.length * LINE_HEIGHT + 16 : 0;
+
+  // 동적 높이 계산
+  const contentH = 48 + 48 + 60 + 40 + 28 + 24 + 48 + claimH + 32 + commentH + detailH + 60;
+  const HEIGHT = PADDING * 2 + contentH;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = WIDTH;
+  canvas.height = HEIGHT;
+  const ctx = canvas.getContext('2d')!;
+
+  // 배경
   ctx.fillStyle = COLORS.bg;
   ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-  // Card
+  // 카드
   const cardX = PADDING;
   const cardY = PADDING;
   const cardW = WIDTH - PADDING * 2;
@@ -102,20 +125,20 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
 
   let y = cardY + 48;
 
-  // Title
+  // 타이틀
   ctx.fillStyle = COLORS.textLight;
   ctx.font = '500 24px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('AI 판결 결과', WIDTH / 2, y);
   y += 48;
 
-  // Judge name
+  // 판사 이름
   ctx.fillStyle = COLORS.textDark;
   ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillText(`${judgeName} 판사`, WIDTH / 2, y);
   y += 60;
 
-  // Divider
+  // 구분선
   ctx.strokeStyle = COLORS.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -124,10 +147,7 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
   ctx.stroke();
   y += 40;
 
-  // Names + percentages
-  const gaugeX = cardX + 40;
-  const gaugeW = cardW - 80;
-
+  // 이름 + 과실 %
   ctx.textAlign = 'left';
   ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillStyle = COLORS.primary;
@@ -138,16 +158,14 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
   ctx.fillText(`${theirName} ${theirFault}%`, gaugeX + gaugeW, y);
   y += 24;
 
-  // Gauge bar
+  // 게이지 바
   const gaugeH = 20;
   const gaugeR = gaugeH / 2;
 
-  // Background
   roundRect(ctx, gaugeX, y, gaugeW, gaugeH, gaugeR);
   ctx.fillStyle = COLORS.gaugeBg;
   ctx.fill();
 
-  // My fault (left)
   const myW = Math.max(gaugeH, (myFault / 100) * gaugeW);
   if (myFault > 0) {
     ctx.beginPath();
@@ -163,7 +181,6 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
     ctx.fill();
   }
 
-  // Opponent fault (right)
   const theirW = Math.max(gaugeH, (theirFault / 100) * gaugeW);
   if (theirFault > 0) {
     const theirX = gaugeX + gaugeW - theirW;
@@ -180,11 +197,8 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
   }
   y += gaugeH + 48;
 
-  // Claims
-  const claimW = (gaugeW - 16) / 2;
-  const claimH = 160;
-
-  // My claim
+  // 주장 카드 (동적 높이)
+  // 내 주장
   roundRect(ctx, gaugeX, y, claimW, claimH, 16);
   ctx.fillStyle = `${COLORS.primary}15`;
   ctx.fill();
@@ -194,14 +208,13 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
   ctx.fillStyle = COLORS.primary;
   ctx.fillText(`${myName} 주장`, gaugeX + 16, y + 28);
 
-  ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = CLAIM_FONT;
   ctx.fillStyle = COLORS.textMid;
-  const myClaimLines = wrapText(ctx, fight.user_claim, claimW - 32, 4);
   myClaimLines.forEach((line, i) => {
-    ctx.fillText(line, gaugeX + 16, y + 56 + i * 24);
+    ctx.fillText(line, gaugeX + 16, y + 56 + i * LINE_HEIGHT);
   });
 
-  // Opponent claim
+  // 상대 주장
   const claimX2 = gaugeX + claimW + 16;
   roundRect(ctx, claimX2, y, claimW, claimH, 16);
   ctx.fillStyle = `${COLORS.accent}15`;
@@ -211,34 +224,50 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
   ctx.fillStyle = COLORS.accent;
   ctx.fillText(`${theirName} 주장`, claimX2 + 16, y + 28);
 
-  ctx.font = '18px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.font = CLAIM_FONT;
   ctx.fillStyle = COLORS.textMid;
-  const theirClaimLines = wrapText(ctx, fight.opponent_claim, claimW - 32, 4);
   theirClaimLines.forEach((line, i) => {
-    ctx.fillText(line, claimX2 + 16, y + 56 + i * 24);
+    ctx.fillText(line, claimX2 + 16, y + 56 + i * LINE_HEIGHT);
   });
   y += claimH + 32;
 
-  // Judge comment
-  if (fight.comment) {
-    roundRect(ctx, gaugeX, y, gaugeW, 80, 16);
+  // 판사 코멘트 (동적 높이)
+  if (fight.comment && commentLines.length > 0) {
+    const commentBoxH = 32 + commentLines.length * 30 + 16;
+    roundRect(ctx, gaugeX, y, gaugeW, commentBoxH, 16);
     ctx.fillStyle = `${COLORS.primary}12`;
     ctx.fill();
 
     ctx.textAlign = 'center';
-    ctx.font = 'italic 22px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.font = COMMENT_FONT;
     ctx.fillStyle = COLORS.textDark;
-    const commentLines = wrapText(ctx, `"${fight.comment}"`, gaugeW - 48, 2);
     commentLines.forEach((line, i) => {
-      ctx.fillText(line, WIDTH / 2, y + 36 + i * 28);
+      ctx.fillText(line, WIDTH / 2, y + 36 + i * 30);
     });
+    y += commentBoxH + 24;
   }
 
-  // Footer
+  // 판결 이유 (동적 높이)
+  if (detailLines.length > 0) {
+    ctx.textAlign = 'left';
+    ctx.font = 'bold 18px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = COLORS.textLight;
+    ctx.fillText('판결 이유', gaugeX, y + 20);
+    y += 36;
+
+    ctx.font = DETAIL_FONT;
+    ctx.fillStyle = COLORS.textMid;
+    detailLines.forEach((line, i) => {
+      ctx.fillText(line, gaugeX, y + i * LINE_HEIGHT);
+    });
+    y += detailLines.length * LINE_HEIGHT + 16;
+  }
+
+  // 푸터
   ctx.textAlign = 'center';
   ctx.font = '20px -apple-system, BlinkMacSystemFont, sans-serif';
   ctx.fillStyle = COLORS.textLight;
-  ctx.fillText('나랑 싸울래? | AI 연애재판소', WIDTH / 2, cardY + cardH - 32);
+  ctx.fillText('나랑 싸울래? | AI 판결 서비스', WIDTH / 2, cardY + cardH - 32);
 
   return canvas.toDataURL('image/png');
 }
@@ -249,10 +278,8 @@ export function generateVerdictImage({ fight, judgeName }: VerdictImageData): st
  * - 일반 브라우저: <a download> fallback
  */
 export async function saveVerdictImageToDevice(base64: string): Promise<void> {
-  // base64 data URL에서 순수 base64 추출 (saveBase64Data용)
   const pureBase64 = base64.replace(/^data:image\/png;base64,/, '');
 
-  // 토스 환경: saveBase64Data 사용
   try {
     const { saveBase64Data } = await import('@apps-in-toss/web-framework');
     await saveBase64Data({
@@ -262,10 +289,9 @@ export async function saveVerdictImageToDevice(base64: string): Promise<void> {
     });
     return;
   } catch {
-    // SDK 없거나 실패 → fallback
+    // fallback
   }
 
-  // 브라우저 fallback: <a download>
   const link = document.createElement('a');
   link.href = base64;
   link.download = `verdict-${Date.now()}.png`;

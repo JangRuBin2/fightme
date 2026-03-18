@@ -1,7 +1,7 @@
 /**
  * Toss 앱 공유 유틸리티
  *
- * - 토스 환경: getTossShareLink + share (딥링크)
+ * - 토스 환경: getTossShareLink + share (딥링크 + OG 이미지)
  * - 테스트/브라우저: Web Share API / clipboard fallback
  *
  * intoss:// 스킴은 앱 정식 출시 후에만 동작.
@@ -9,6 +9,7 @@
  */
 
 const APP_NAME = 'fightme';
+const OG_IMAGE_URL = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/og-image/share.png`;
 
 export function isTossEnvironment(): boolean {
   if (typeof window === 'undefined') return false;
@@ -21,19 +22,19 @@ function buildDeepLink(path: string): string {
 
 /**
  * 토스 공유 링크를 생성하고 share() 호출.
+ * OG 이미지를 Canvas로 생성 → Storage 업로드 → 공유 링크에 포함.
  * 토스 환경이 아니면 Web Share API / clipboard fallback.
  */
 export async function shareFightResult(
   fightId: string,
   comment?: string,
 ): Promise<'shared' | 'copied' | 'failed'> {
-  // 토스 환경: getTossShareLink + share
-  // 쿼리 파라미터 대신 path param 사용 (Toss가 _deploymentId를 쿼리로 추가하므로 충돌 방지)
+  // 토스 환경: getTossShareLink + share (고정 OG 이미지)
   if (isTossEnvironment()) {
     try {
       const { getTossShareLink, share } = await import('@apps-in-toss/web-framework');
       const deepLink = buildDeepLink(`/result/${fightId}`);
-      const tossLink = await getTossShareLink(deepLink);
+      const tossLink = await getTossShareLink(deepLink, OG_IMAGE_URL);
       const message = comment
         ? `"${comment}" - 나도 판결받아보기!\n${tossLink}`
         : `AI 판사의 판결 결과를 확인해보세요!\n${tossLink}`;

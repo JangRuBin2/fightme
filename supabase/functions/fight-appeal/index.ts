@@ -1,6 +1,6 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
-import { spendTokens } from '../_shared/tokens.ts';
+import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
 
@@ -129,9 +129,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Spend 5 tokens
-    const newBalance = await spendTokens(supabaseAdmin, user.id, 5, 'FIGHT_APPEAL');
-    if (newBalance === null) {
+    // Check balance first (spend after success)
+    const canAfford = await checkTokenBalance(supabaseAdmin, user.id, 5);
+    if (!canAfford) {
       return new Response(
         JSON.stringify({ error: '토큰이 부족합니다', code: 'INSUFFICIENT_TOKENS' }),
         { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -210,8 +210,11 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to update fight: ${updateError.message}`);
     }
 
+    // All succeeded — now spend tokens
+    const newBalance = await spendTokens(supabaseAdmin, user.id, 5, 'FIGHT_APPEAL');
+
     return new Response(
-      JSON.stringify({ success: true, fight: updatedFight, tokenBalance: newBalance }),
+      JSON.stringify({ success: true, fight: updatedFight, tokenBalance: newBalance ?? 0 }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (err) {

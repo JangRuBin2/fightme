@@ -37,6 +37,7 @@ export const fightSchema = z.object({
   defense: defenseDataSchema.nullable().optional(),
   original_verdict: originalVerdictSchema.nullable().optional(),
   is_revealed: z.boolean(),
+  detail_unlocked: z.boolean().optional(),
   created_at: z.string(),
 });
 
@@ -77,19 +78,24 @@ export const profileTokenSchema = z.object({
 });
 
 /**
- * Safe parse helper for Supabase direct queries.
- * Validates data with Zod schema, returns null on failure.
+ * Safe parse helpers for Supabase direct queries.
+ * Zod 검증 실패 시 로그 출력 + raw data fallback (데이터 유실 방지).
  */
 export function safeParseArray<T>(schema: z.ZodType<T>, data: unknown[]): T[] {
-  return data.flatMap((item) => {
+  return data.map((item) => {
     const result = schema.safeParse(item);
-    return result.success ? [result.data] : [];
+    if (result.success) return result.data;
+    console.warn('[Zod] array item validation failed:', result.error.issues);
+    return item as T;
   });
 }
 
 export function safeParseSingle<T>(schema: z.ZodType<T>, data: unknown): T | null {
+  if (!data) return null;
   const result = schema.safeParse(data);
-  return result.success ? result.data : null;
+  if (result.success) return result.data;
+  console.warn('[Zod] single validation failed:', result.error.issues);
+  return data as T; // fallback: 검증 실패해도 raw data 반환
 }
 
 // ── Edge Function response schemas ──

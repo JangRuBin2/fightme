@@ -36,6 +36,10 @@ interface AppState {
   setOpponentClaim: (claim: string) => void;
   setJudgeId: (id: string) => void;
   resetFight: () => void;
+
+  // Processing state (판결/판사생성 등 AI 처리 중)
+  isProcessing: boolean;
+  setProcessing: (value: boolean) => void;
 }
 
 const initialFight: CurrentFight = {
@@ -92,6 +96,10 @@ export const useStore = create<AppState>()(
         })),
       resetFight: () =>
         set({ currentFight: { ...initialFight } }),
+
+      // Processing
+      isProcessing: false,
+      setProcessing: (value) => set({ isProcessing: value }),
     }),
     {
       name: 'fightme-storage',

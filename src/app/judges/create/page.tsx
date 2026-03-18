@@ -2,15 +2,27 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { Gavel } from 'lucide-react';
 import JudgeCreateWizard from '@/components/judge/JudgeCreateWizard';
 import { createJudge } from '@/lib/api/judges';
 import { useStore } from '@/store/useStore';
 import { getErrorMessage } from '@/lib/errors';
+import { useProcessingGuard } from '@/hooks/useProcessingGuard';
+
+const LOADING_MESSAGES = [
+  '판사 캐릭터를 생성하고 있어요...',
+  'AI가 성격을 분석하고 있어요...',
+  '말투를 학습하고 있어요...',
+  '적합성을 검토하고 있어요...',
+];
 
 export default function CreateJudgePage() {
   const router = useRouter();
   const { setTokenBalance } = useStore();
+  const { startProcessing, stopProcessing } = useProcessingGuard();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ approved: boolean; reason: string } | null>(null);
 
@@ -24,12 +36,21 @@ export default function CreateJudgePage() {
     q5: string;
   }) => {
     setIsSubmitting(true);
+    startProcessing();
     setError(null);
+    setLoadingMsgIndex(0);
+
+    // 로딩 메시지 순환
+    const msgTimer = setInterval(() => {
+      setLoadingMsgIndex((prev) => (prev + 1) % LOADING_MESSAGES.length);
+    }, 3000);
 
     try {
       const res = await createJudge(data);
       setTokenBalance(res.tokenBalance);
 
+      clearInterval(msgTimer);
+      stopProcessing();
       if (res.approved) {
         setResult({ approved: true, reason: res.reviewReason });
         setTimeout(() => {
@@ -40,10 +61,51 @@ export default function CreateJudgePage() {
         setIsSubmitting(false);
       }
     } catch (err) {
+      clearInterval(msgTimer);
+      stopProcessing();
       setError(getErrorMessage(err));
       setIsSubmitting(false);
     }
   };
+
+  if (isSubmitting) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] px-5 text-center">
+        <motion.div
+          animate={{ rotate: [0, 10, -10, 10, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          className="mb-6"
+        >
+          <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center">
+            <Gavel className="w-10 h-10 text-primary-400" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          key={loadingMsgIndex}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="mb-4"
+        >
+          <p className="text-body1 font-medium text-gray-700">
+            {LOADING_MESSAGES[loadingMsgIndex]}
+          </p>
+        </motion.div>
+
+        <div className="w-48 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-primary-400 rounded-full"
+            animate={{ x: ['-100%', '100%'] }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ width: '40%' }}
+          />
+        </div>
+
+        <p className="text-caption text-gray-400 mt-4">AI가 판사를 만들고 검토하고 있어요</p>
+      </div>
+    );
+  }
 
   if (result?.approved) {
     return (

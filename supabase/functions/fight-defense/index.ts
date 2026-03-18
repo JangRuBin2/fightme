@@ -1,6 +1,6 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
-import { spendTokens } from '../_shared/tokens.ts';
+import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import { validateStringLength } from '../_shared/validate.ts';
 
@@ -161,23 +161,15 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Spend tokens: AI defense = 5, self defense = free
-    let newBalance: number | null = null;
+    // Check balance first (spend after success)
     if (defense_type === 'ai') {
-      newBalance = await spendTokens(supabaseAdmin, user.id, 5, 'FIGHT_DEFENSE_AI');
-      if (newBalance === null) {
+      const canAfford = await checkTokenBalance(supabaseAdmin, user.id, 5);
+      if (!canAfford) {
         return new Response(
           JSON.stringify({ error: '토큰이 부족합니다', code: 'INSUFFICIENT_TOKENS' }),
           { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
-    } else {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('token')
-        .eq('id', user.id)
-        .single();
-      newBalance = profile?.token ?? 0;
     }
 
     const side = defense_side || 'user';
@@ -185,13 +177,24 @@ Deno.serve(async (req) => {
 
     if (defense_type === 'ai') {
       defenseData = await generateAIDefense(fight.user_claim, fight.opponent_claim, side);
+    } else if (side === 'both') {
+      // 직접 변호 양쪽: defense_text에 JSON { user, opponent } 형태로 전달됨
+      try {
+        const parsed = JSON.parse(defense_text);
+        defenseData = {
+          sections: [
+            { side: 'user', text: String(parsed.user || '') },
+            { side: 'opponent', text: String(parsed.opponent || '') },
+          ].filter((s) => s.text.trim().length > 0),
+        };
+      } catch {
+        // JSON 파싱 실패 시 user side로 저장
+        defenseData = { sections: [{ side: 'user', text: defense_text }] };
+      }
     } else {
-      // 직접 변호: "both"일 때도 user 텍스트 하나만 올 수 있으므로 user side로 저장
       const selfSide = side === 'opponent' ? 'opponent' as const : 'user' as const;
       defenseData = {
-        sections: [
-          { side: selfSide, text: defense_text },
-        ],
+        sections: [{ side: selfSide, text: defense_text }],
       };
     }
 
@@ -207,13 +210,26 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to update fight: ${updateError.message}`);
     }
 
+    // All succeeded — now spend tokens (AI only)
+    let newBalance: number | null = null;
+    if (defense_type === 'ai') {
+      newBalance = await spendTokens(supabaseAdmin, user.id, 5, 'FIGHT_DEFENSE_AI');
+    } else {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('token')
+        .eq('id', user.id)
+        .single();
+      newBalance = profile?.token ?? 0;
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         defense: defenseData,
         defense_text: defenseData.sections.map((s) => s.text).join('\n\n'),
         fight: updatedFight,
-        tokenBalance: newBalance,
+        tokenBalance: newBalance ?? 0,
       }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );

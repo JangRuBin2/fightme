@@ -56,6 +56,7 @@ function DefenseContent() {
   const [activeTab, setActiveTab] = useState<DefenseTab>('ai');
   const [defenseSide, setDefenseSide] = useState<DefenseSide>('user');
   const [selfDefense, setSelfDefense] = useState('');
+  const [selfDefenseOpponent, setSelfDefenseOpponent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [aiGenerated, setAiGenerated] = useState(false);
   const [aiDefenseSections, setAiDefenseSections] = useState<DefenseSectionData[]>([]);
@@ -97,14 +98,29 @@ function DefenseContent() {
     }
   };
 
+  const canSubmitSelf = (() => {
+    if (defenseSide === 'both') return selfDefense.trim().length > 0 && selfDefenseOpponent.trim().length > 0;
+    return selfDefense.trim().length > 0;
+  })();
+
   const handleSubmitSelfDefense = async () => {
-    if (!fight || !fightId || isSubmitting || !selfDefense.trim()) return;
+    if (!fight || !fightId || isSubmitting || !canSubmitSelf) return;
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await submitDefense(fightId, selfDefense.trim(), 'self', defenseSide);
+      if (defenseSide === 'both') {
+        // 양쪽 입력: defense_text에 JSON으로 양쪽 텍스트 전달
+        await submitDefense(
+          fightId,
+          JSON.stringify({ user: selfDefense.trim(), opponent: selfDefenseOpponent.trim() }),
+          'self',
+          'both',
+        );
+      } else {
+        await submitDefense(fightId, selfDefense.trim(), 'self', defenseSide);
+      }
       await refresh();
       router.push(`/fight/appeal/?id=${fightId}`);
     } catch (err) {
@@ -162,6 +178,8 @@ function DefenseContent() {
                 setDefenseSide(value);
                 setAiGenerated(false);
                 setAiDefenseSections([]);
+                setSelfDefense('');
+                setSelfDefenseOpponent('');
               }}
               className={`flex-1 py-2.5 rounded-xl text-caption font-medium flex items-center justify-center gap-1.5 transition-colors ${
                 defenseSide === value
@@ -242,21 +260,65 @@ function DefenseContent() {
       {/* Self Defense Tab */}
       {activeTab === 'self' && (
         <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-4">
-          <div className="card">
-            <PenLine className="w-8 h-8 text-gray-400 mb-3" />
-            <h3 className="text-body1 font-semibold text-gray-900 mb-1">직접 변호</h3>
-            <p className="text-body2 text-gray-500 mb-4">{sideLabel} 입장에서 추가 변론을 작성해주세요</p>
-            <textarea
-              className="textarea-field h-36"
-              placeholder={defenseSide === 'opponent' ? '상대방이 왜 덜 잘못했는지 설명해주세요...' : defenseSide === 'both' ? '양쪽 입장을 모두 추가로 설명해주세요...' : '내가 왜 덜 잘못했는지 추가로 설명해주세요...'}
-              maxLength={300}
-              value={selfDefense}
-              onChange={(e) => setSelfDefense(e.target.value)}
-            />
-            <p className="text-caption text-gray-400 text-right mt-1">{selfDefense.length}/300</p>
-          </div>
+          {defenseSide === 'both' ? (
+            <>
+              {/* 양쪽 다: 원고/피고 각각 입력 */}
+              <div className="card">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                    <User className="w-4 h-4 text-primary-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-body1 font-semibold text-gray-900">{fight.user_name || '나'} 측 변론</h3>
+                    <p className="text-caption text-gray-500">내 입장에서 추가 변론을 작성해주세요</p>
+                  </div>
+                </div>
+                <textarea
+                  className="textarea-field h-28"
+                  placeholder="내가 왜 덜 잘못했는지 설명해주세요..."
+                  maxLength={300}
+                  value={selfDefense}
+                  onChange={(e) => setSelfDefense(e.target.value)}
+                />
+                <p className="text-caption text-gray-400 text-right mt-1">{selfDefense.length}/300</p>
+              </div>
+              <div className="card">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-full bg-accent-100 flex items-center justify-center">
+                    <User className="w-4 h-4 text-accent-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-body1 font-semibold text-gray-900">{fight.opponent_name || '상대'} 측 변론</h3>
+                    <p className="text-caption text-gray-500">상대 입장에서 추가 변론을 작성해주세요</p>
+                  </div>
+                </div>
+                <textarea
+                  className="textarea-field h-28"
+                  placeholder="상대방이 왜 덜 잘못했는지 설명해주세요..."
+                  maxLength={300}
+                  value={selfDefenseOpponent}
+                  onChange={(e) => setSelfDefenseOpponent(e.target.value)}
+                />
+                <p className="text-caption text-gray-400 text-right mt-1">{selfDefenseOpponent.length}/300</p>
+              </div>
+            </>
+          ) : (
+            <div className="card">
+              <PenLine className="w-8 h-8 text-gray-400 mb-3" />
+              <h3 className="text-body1 font-semibold text-gray-900 mb-1">직접 변호</h3>
+              <p className="text-body2 text-gray-500 mb-4">{sideLabel} 입장에서 추가 변론을 작성해주세요</p>
+              <textarea
+                className="textarea-field h-36"
+                placeholder={defenseSide === 'opponent' ? '상대방이 왜 덜 잘못했는지 설명해주세요...' : '내가 왜 덜 잘못했는지 추가로 설명해주세요...'}
+                maxLength={300}
+                value={selfDefense}
+                onChange={(e) => setSelfDefense(e.target.value)}
+              />
+              <p className="text-caption text-gray-400 text-right mt-1">{selfDefense.length}/300</p>
+            </div>
+          )}
 
-          {selfDefense.trim().length > 0 && (
+          {canSubmitSelf && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <button
                 className="w-full py-3.5 rounded-xl font-semibold text-body1 bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2 disabled:opacity-50"

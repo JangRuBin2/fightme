@@ -3,15 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Swords, ChevronRight, Coins, Plus, ShoppingBag } from 'lucide-react';
+import { Swords, ChevronRight, Coins, Plus, ShoppingBag, AlertCircle } from 'lucide-react';
 import JudgeSelector from '@/components/judge/JudgeSelector';
 import VerdictLoading from '@/components/fight/VerdictLoading';
 import AdModal from '@/components/shared/AdModal';
 import { getJudges } from '@/lib/api/judges';
-import { createFight } from '@/lib/api/fights';
+import { createFight, getLatestFight } from '@/lib/api/fights';
 import { useStore } from '@/store/useStore';
 import { useTokens } from '@/hooks/useTokens';
 import { getErrorCode, getErrorMessage } from '@/lib/errors';
+import { useProcessingGuard } from '@/hooks/useProcessingGuard';
 import type { Judge } from '@/types/database';
 
 export default function HomePage() {
@@ -26,6 +27,7 @@ export default function HomePage() {
     setJudgeId: storeSetJudgeId,
     resetFight,
   } = useStore();
+  const { startProcessing, stopProcessing } = useProcessingGuard();
   const userName = currentFight.userName;
   const opponentName = currentFight.opponentName;
   const userClaim = currentFight.userClaim;
@@ -35,13 +37,26 @@ export default function HomePage() {
   const [judges, setJudges] = useState<Judge[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showAdModal, setShowAdModal] = useState(false);
+  const [pendingFightId, setPendingFightId] = useState<string | null>(null);
   const { balance, refresh } = useTokens();
 
   useEffect(() => {
     getJudges('all')
       .then(setJudges)
       .catch(() => {});
-  }, []);
+
+    // 미확인 판결 감지: 최근 5분 내 생성된 판결이 있으면 안내
+    if (isLoggedIn) {
+      getLatestFight().then((fight) => {
+        if (!fight) return;
+        const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+        const createdAt = new Date(fight.created_at).getTime();
+        if (createdAt > fiveMinAgo) {
+          setPendingFightId(fight.id);
+        }
+      }).catch(() => {});
+    }
+  }, [isLoggedIn]);
 
   const canSubmit =
     userClaim.trim().length > 0 &&
@@ -57,6 +72,7 @@ export default function HomePage() {
     }
 
     setIsSubmitting(true);
+    startProcessing();
     setError(null);
 
     try {
@@ -67,9 +83,11 @@ export default function HomePage() {
         userName.trim() || undefined,
         opponentName.trim() || undefined,
       );
+      stopProcessing();
       resetFight();
       router.push(`/fight/?id=${result.fight.id}`);
     } catch (err) {
+      stopProcessing();
       if (getErrorCode(err) === 'AUTH_REQUIRED') {
         router.push('/login/');
         return;
@@ -85,6 +103,27 @@ export default function HomePage() {
 
   return (
     <div className="px-5 pb-24">
+      {/* Pending fight banner */}
+      {pendingFightId && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-14 mb-2"
+        >
+          <button
+            onClick={() => router.push(`/fight/?id=${pendingFightId}`)}
+            className="w-full flex items-center gap-3 p-4 rounded-xl bg-primary-50 active:bg-primary-100 transition-colors"
+          >
+            <AlertCircle className="w-5 h-5 text-primary-500 flex-shrink-0" />
+            <div className="flex-1 text-left">
+              <p className="text-body2 font-medium text-primary-600">확인하지 않은 판결이 있어요</p>
+              <p className="text-caption text-primary-400">탭해서 결과를 확인하세요</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-primary-400" />
+          </button>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

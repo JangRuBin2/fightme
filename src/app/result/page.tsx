@@ -174,7 +174,7 @@ function ResultContent() {
           <Swords className="w-5 h-5" />
           나도 재판받기
         </button>
-        <p className="text-caption text-gray-400 mt-3">나랑 싸울래? | AI 연애재판소</p>
+        <p className="text-caption text-gray-400 mt-3">나랑 싸울래? | AI 판결 서비스</p>
       </motion.div>
     </div>
   );

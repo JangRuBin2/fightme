@@ -1,14 +1,14 @@
 import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
-import { spendTokens } from '../_shared/tokens.ts';
+import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import { validateInputs } from '../_shared/validate.ts';
 
 const JUDGE_CREATE_COST = 100;
 
-// Banned terms filter (ilbe, sexual, etc.)
+// Banned terms filter
 const BANNED_PATTERNS = [
-  // 일베 용어
+  // 혐오/비하 용어
   /딱\s*좋노/i, /이기야/i, /노\s*알라/i, /충이/i, /홍어/i, /틀딱/i,
   /한남충/i, /한녀충/i, /김치녀/i, /된장녀/i, /맘충/i,
   // 성적 용어
@@ -88,7 +88,7 @@ async function reviewJudge(name: string, description: string, prompt: string): P
 - 특정 지역/성별/인종을 비하하는 심각한 혐오 표현
 - 노골적인 성적 묘사
 - 폭력을 직접적으로 조장하는 내용
-- 일베 등 커뮤니티의 혐오 용어 (예: "딱 좋노", "이기야" 등)
+- 특정 커뮤니티 기반의 혐오/비하 용어
 
 위에 해당하지 않으면 반드시 approved: true로 응답하세요.`;
 
@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
     }
 
     const inputError = validateInputs([
-      { value: name, field: '판사 이름', max: 20 },
-      { value: speech_style, field: '말투 스타일', max: 50 },
+      { value: name, field: '판사 이름', max: 5 },
+      { value: speech_style, field: '말투 스타일', max: 200 },
       { value: q1, field: '답변1', max: 100 },
       { value: q2, field: '답변2', max: 100 },
       { value: q3, field: '답변3', max: 100 },
@@ -167,9 +167,9 @@ Deno.serve(async (req) => {
       { onConflict: 'id', ignoreDuplicates: true }
     );
 
-    // Step 3: Spend 100 tokens
-    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_CREATE_COST, 'JUDGE_CREATE');
-    if (newBalance === null) {
+    // Step 3: Check balance (spend after success)
+    const canAfford = await checkTokenBalance(supabaseAdmin, user.id, JUDGE_CREATE_COST);
+    if (!canAfford) {
       return new Response(
         JSON.stringify({ error: `토큰이 부족합니다 (${JUDGE_CREATE_COST}개 필요)`, code: 'INSUFFICIENT_TOKENS' }),
         { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
@@ -203,13 +203,16 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to create judge: ${judgeError.message}`);
     }
 
+    // All succeeded — now spend tokens
+    const newBalance = await spendTokens(supabaseAdmin, user.id, JUDGE_CREATE_COST, 'JUDGE_CREATE');
+
     return new Response(
       JSON.stringify({
         success: true,
         judge,
         approved: review.approved,
         reviewReason: review.reason,
-        tokenBalance: newBalance,
+        tokenBalance: newBalance ?? 0,
       }),
       { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );

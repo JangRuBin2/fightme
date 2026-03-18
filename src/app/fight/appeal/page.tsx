@@ -11,6 +11,7 @@ import { getFight, submitAppeal } from '@/lib/api/fights';
 import { getJudges } from '@/lib/api/judges';
 import { useTokens } from '@/hooks/useTokens';
 import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
+import { useProcessingGuard } from '@/hooks/useProcessingGuard';
 import type { Fight, Judge } from '@/types/database';
 
 export default function AppealPage() {
@@ -25,6 +26,7 @@ function AppealContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const fightId = searchParams.get('id');
+  const { startProcessing, stopProcessing } = useProcessingGuard();
   const [fight, setFight] = useState<Fight | null>(null);
   const [judges, setJudges] = useState<Judge[]>([]);
   const [keepSameJudge, setKeepSameJudge] = useState(true);
@@ -63,14 +65,17 @@ function AppealContent() {
     }
 
     setIsSubmitting(true);
+    startProcessing();
     setError(null);
 
     try {
       const judgeId = keepSameJudge ? undefined : (selectedJudge || undefined);
       const result = await submitAppeal(fightId, judgeId);
+      stopProcessing();
       await refresh();
       router.push(`/fight/?id=${fightId}`);
     } catch (err) {
+      stopProcessing();
       if (isInsufficientTokens(err)) {
         setShowAdModal(true);
       } else {

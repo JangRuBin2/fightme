@@ -161,12 +161,12 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
                 <input
                   className="input-field text-lg"
                   placeholder="예: 냉철한 판사님"
-                  maxLength={20}
+                  maxLength={5}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
                 />
-                <p className="text-caption text-gray-400 text-right mt-1">{name.length}/20</p>
+                <p className="text-caption text-gray-400 text-right mt-1">{name.length}/5</p>
               </div>
             ) : isSpeechStep ? (
               <div>

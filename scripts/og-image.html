@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>OG Image Generator</title></head>
+<body style="margin:0;background:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;color:#fff">
+<canvas id="c" width="1200" height="600" style="max-width:90vw;border:1px solid #333"></canvas>
+<p id="status" style="margin-top:20px">generating...</p>
+<script>
+const W = 1200, H = 600;
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+// 배경 그라데이션
+const grad = ctx.createLinearGradient(0, 0, W, H);
+grad.addColorStop(0, '#FAFAF7');
+grad.addColorStop(1, '#FFF5F5');
+ctx.fillStyle = grad;
+ctx.fillRect(0, 0, W, H);
+
+// 장식 원 (좌상단)
+ctx.beginPath();
+ctx.arc(-60, -60, 200, 0, Math.PI * 2);
+ctx.fillStyle = 'rgba(232, 85, 61, 0.08)';
+ctx.fill();
+
+// 장식 원 (우하단)
+ctx.beginPath();
+ctx.arc(W + 40, H + 40, 250, 0, Math.PI * 2);
+ctx.fillStyle = 'rgba(212, 168, 83, 0.08)';
+ctx.fill();
+
+// 장식 선 (중앙 좌우)
+ctx.strokeStyle = 'rgba(232, 85, 61, 0.06)';
+ctx.lineWidth = 2;
+for (let i = 0; i < 5; i++) {
+  ctx.beginPath();
+  ctx.moveTo(40 + i * 8, 100);
+  ctx.lineTo(40 + i * 8, 500);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(W - 40 - i * 8, 100);
+  ctx.lineTo(W - 40 - i * 8, 500);
+  ctx.stroke();
+}
+
+// 망치 아이콘 (간단한 도형)
+ctx.save();
+ctx.translate(W / 2, 140);
+// 망치 머리
+ctx.fillStyle = '#E8553D';
+ctx.beginPath();
+ctx.roundRect(-30, -20, 60, 24, 6);
+ctx.fill();
+// 망치 손잡이
+ctx.fillStyle = '#D4A853';
+ctx.beginPath();
+ctx.roundRect(-4, 4, 8, 36, 4);
+ctx.fill();
+ctx.restore();
+
+// 타이틀
+ctx.textAlign = 'center';
+ctx.fillStyle = '#191F28';
+ctx.font = 'bold 64px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+ctx.fillText('나랑 싸울래?', W / 2, 240);
+
+// 서브타이틀
+ctx.fillStyle = '#E8553D';
+ctx.font = '500 30px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+ctx.fillText('AI 판결 서비스', W / 2, 290);
+
+// 구분선
+ctx.strokeStyle = '#E5E8EB';
+ctx.lineWidth = 1;
+ctx.beginPath();
+ctx.moveTo(W / 2 - 100, 320);
+ctx.lineTo(W / 2 + 100, 320);
+ctx.stroke();
+
+// VS 뱃지
+ctx.fillStyle = '#E8553D';
+ctx.beginPath();
+ctx.arc(W / 2, 380, 28, 0, Math.PI * 2);
+ctx.fill();
+ctx.fillStyle = '#FFFFFF';
+ctx.font = 'bold 22px -apple-system, BlinkMacSystemFont, sans-serif';
+ctx.fillText('VS', W / 2, 388);
+
+// 좌측 라벨
+ctx.fillStyle = '#E8553D';
+ctx.font = 'bold 24px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+ctx.textAlign = 'right';
+ctx.fillText('원고', W / 2 - 50, 388);
+
+// 우측 라벨
+ctx.fillStyle = '#D4A853';
+ctx.textAlign = 'left';
+ctx.fillText('피고', W / 2 + 50, 388);
+
+// CTA
+ctx.textAlign = 'center';
+ctx.fillStyle = '#4E5968';
+ctx.font = '500 26px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+ctx.fillText('AI 판사의 판결 결과를 확인해보세요!', W / 2, 460);
+
+// 브랜딩
+ctx.fillStyle = '#8B95A1';
+ctx.font = '20px -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif';
+ctx.fillText('커플/친구 갈등, AI가 판결합니다', W / 2, 510);
+
+// 하단 바
+ctx.fillStyle = '#E8553D';
+ctx.fillRect(0, H - 6, W, 6);
+
+// 자동 다운로드
+setTimeout(() => {
+  const link = document.createElement('a');
+  link.download = 'share.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+  document.getElementById('status').textContent = 'share.png 다운로드 완료! Supabase Storage public/og/share.png 에 업로드하세요.';
+}, 500);
+</script>
+</body>
+</html>
