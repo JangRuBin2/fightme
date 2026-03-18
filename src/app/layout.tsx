@@ -5,6 +5,7 @@ import { useEffect, lazy, Suspense } from 'react';
 import { useStore } from '@/store/useStore';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import HamburgerMenu from '@/components/layout/HamburgerMenu';
+import Footer from '@/components/layout/Footer';
 
 const DebugPanel = lazy(() => import('@/components/debug/DebugPanel'));
 const IS_DEBUG = process.env.NEXT_PUBLIC_DEBUG === 'true';
@@ -41,6 +42,7 @@ export default function RootLayout({
         <main className="min-h-screen safe-top safe-bottom">
           {children}
         </main>
+        {!isProcessing && <Footer />}
         {IS_DEBUG && (
           <Suspense fallback={null}>
             <DebugPanel />
