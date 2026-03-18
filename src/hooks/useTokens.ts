@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
-import { getTokenBalance, watchAdForTokens } from '@/lib/api/tokens';
+import { getTokenBalance, watchAdForTokens, checkPremiumMonthly } from '@/lib/api/tokens';
 
 export function useTokens() {
   const { tokenBalance, setTokenBalance, adjustTokens, isLoggedIn } = useStore();
@@ -10,11 +10,17 @@ export function useTokens() {
   const refresh = useCallback(async () => {
     if (!isLoggedIn) return;
     try {
+      // Check premium monthly grant first (on-demand)
+      const premiumResult = await checkPremiumMonthly();
+      if (premiumResult.granted && premiumResult.tokenBalance !== null) {
+        setTokenBalance(premiumResult.tokenBalance);
+        return;
+      }
+
       const balance = await getTokenBalance();
       if (balance !== null) {
         setTokenBalance(balance);
       }
-      // null means fetch failed - keep existing store value
     } catch {
       // silent fail - keep existing store value
     }

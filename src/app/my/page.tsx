@@ -18,6 +18,7 @@ import {
 import AdModal from '@/components/shared/AdModal';
 import { useStore } from '@/store/useStore';
 import { useTokens } from '@/hooks/useTokens';
+import { deleteAccount } from '@/lib/api/tokens';
 
 const APP_VERSION = '0.2.0';
 
@@ -47,6 +48,7 @@ export default function MyPage() {
   const { nickname, isLoggedIn, clearAuth, theme, setTheme } = useStore();
   const { balance, refresh } = useTokens();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showAdModal, setShowAdModal] = useState(false);
 
   const handleLogout = () => {
@@ -54,7 +56,18 @@ export default function MyPage() {
     router.push('/');
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    try {
+      const success = await deleteAccount();
+      if (!success) {
+        setIsDeleting(false);
+        return;
+      }
+    } catch {
+      setIsDeleting(false);
+      return;
+    }
     clearAuth();
     setShowDeleteConfirm(false);
     router.push('/');
@@ -268,8 +281,9 @@ export default function MyPage() {
               <button
                 className="btn-primary"
                 onClick={handleDeleteAccount}
+                disabled={isDeleting}
               >
-                탈퇴하기
+                {isDeleting ? '탈퇴 처리 중...' : '탈퇴하기'}
               </button>
               <button
                 className="btn-secondary"

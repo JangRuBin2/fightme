@@ -171,6 +171,14 @@ Deno.serve(async (req) => {
     );
     const judgment = await getJudgment(judge.prompt, userPrompt);
 
+    // Validate fault sum = 100
+    const faultSum = judgment.user_fault + judgment.opponent_fault;
+    if (faultSum !== 100) {
+      const ratio = 100 / faultSum;
+      judgment.user_fault = Math.round(judgment.user_fault * ratio);
+      judgment.opponent_fault = 100 - judgment.user_fault;
+    }
+
     // Save original verdict before overwriting
     const originalVerdict = {
       judge_id: fight.judge_id,

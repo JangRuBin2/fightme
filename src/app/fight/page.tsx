@@ -167,7 +167,7 @@ function FightResultContent() {
             <RotateCcw className="w-5 h-5" />
             판사 바꿔서 다시 판결 (토큰 5개)
           </Link>
-          <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
+          <ShareButton fight={fight} judgeName={judge?.name || '판사'} />
         </motion.div>
       )}
 
@@ -178,7 +178,7 @@ function FightResultContent() {
           transition={{ delay: 0.5 }}
           className="mt-6"
         >
-          <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
+          <ShareButton fight={fight} judgeName={judge?.name || '판사'} />
         </motion.div>
       )}
     </div>

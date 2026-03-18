@@ -191,8 +191,8 @@ export default function MyFightsPage() {
                 )}
 
                 {fight.is_revealed && (
-                  <div className="mt-2" onClick={(e) => e.stopPropagation()}>
-                    <ShareButton fightId={fight.id} comment={fight.comment || undefined} />
+                  <div className="mt-2 flex justify-end" onClick={(e) => e.stopPropagation()}>
+                    <ShareButton fight={fight} judgeName="판사" variant="compact" />
                   </div>
                 )}
               </motion.button>

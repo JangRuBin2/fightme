@@ -196,6 +196,32 @@ Deno.serve(async (req) => {
     });
 
     if (signInData?.session) {
+      // Reactivate soft-deleted profile if needed
+      if (signInData.user?.id) {
+        const { data: profile } = await supabaseAdmin
+          .from('profiles')
+          .select('deleted_at')
+          .eq('id', signInData.user.id)
+          .single();
+
+        if (profile?.deleted_at) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({
+              deleted_at: null,
+              token: 5,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', signInData.user.id);
+
+          await supabaseAdmin.from('token_logs').insert({
+            user_id: signInData.user.id,
+            amount: 5,
+            reason: 'SIGNUP_BONUS',
+          });
+        }
+      }
+
       return new Response(
         JSON.stringify({
           success: true,

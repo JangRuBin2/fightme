@@ -145,7 +145,7 @@ export default function ShopPage() {
               </p>
               <p className="text-body2 text-gray-700 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-accent-500" />
-                매월 토큰 200개 자동 충전
+                매월 토큰 50개 자동 충전
               </p>
               <p className="text-body2 text-gray-700 flex items-center gap-1.5">
                 <Sparkles className="w-4 h-4 text-accent-500" />

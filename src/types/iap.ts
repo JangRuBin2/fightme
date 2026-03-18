@@ -77,7 +77,7 @@ export const TOKEN_AMOUNTS: Record<string, number> = {
   [IAP_PRODUCTS.TOKEN_30]: 30,
   [IAP_PRODUCTS.TOKEN_100]: 100,
   [IAP_PRODUCTS.TOKEN_300]: 300,
-  [IAP_PRODUCTS.PREMIUM_LAUNCH]: 200, // 200 tokens/month lifetime
+  [IAP_PRODUCTS.PREMIUM_LAUNCH]: 50, // 50 tokens/month lifetime
 };
 
 // 상품 타입
@@ -127,9 +127,9 @@ export const IAP_PRODUCT_INFO: Record<string, {
   },
   [IAP_PRODUCTS.PREMIUM_LAUNCH]: {
     name: '오픈기념 프리미엄',
-    description: '평생 글자수 무제한 + 매월 토큰 200개',
+    description: '평생 글자수 무제한 + 매월 토큰 50개',
     price: '9,900원',
-    tokenAmount: 200,
+    tokenAmount: 50,
     type: 'premium',
   },
 };

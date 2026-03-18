@@ -2,6 +2,7 @@ import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { spendTokens } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
+import { validateInputs } from '../_shared/validate.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
 
 const JUDGE_COST = 3;
@@ -77,6 +78,19 @@ Deno.serve(async (req) => {
       );
     }
 
+    const inputError = validateInputs([
+      { value: user_claim, field: '내 주장', max: 200 },
+      { value: opponent_claim, field: '상대 주장', max: 200 },
+      { value: user_name, field: '내 이름', max: 20, required: false },
+      { value: opponent_name, field: '상대 이름', max: 20, required: false },
+    ]);
+    if (inputError) {
+      return new Response(
+        JSON.stringify({ error: inputError }),
+        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseAdmin = createAdminClient();
 
     // Get judge data
@@ -114,6 +128,14 @@ Deno.serve(async (req) => {
     const opponentNameStr = opponent_name || '피고';
     const userPrompt = buildUserPrompt(judge, user_claim, opponent_claim, userName, opponentNameStr);
     const judgment = await getJudgment(systemPrompt, userPrompt);
+
+    // Validate fault sum = 100
+    const faultSum = judgment.user_fault + judgment.opponent_fault;
+    if (faultSum !== 100) {
+      const ratio = 100 / faultSum;
+      judgment.user_fault = Math.round(judgment.user_fault * ratio);
+      judgment.opponent_fault = 100 - judgment.user_fault;
+    }
 
     // Create fight record with verdict data merged
     const { data: fight, error: fightError } = await supabaseAdmin

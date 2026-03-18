@@ -18,9 +18,9 @@ function DefenseDisplay({ defense, compact, myName, theirName }: { defense: Figh
     <div className="space-y-2">
       {defense.sections.map((section, i) => {
         const isOpponent = section.side === 'opponent';
-        const bgColor = isOpponent ? 'bg-amber-50' : 'bg-blue-50';
-        const iconColor = isOpponent ? 'text-amber-500' : 'text-blue-500';
-        const labelColor = isOpponent ? 'text-amber-600' : 'text-blue-600';
+        const bgColor = isOpponent ? 'bg-accent-50' : 'bg-primary-50';
+        const iconColor = isOpponent ? 'text-accent-500' : 'text-primary-500';
+        const labelColor = isOpponent ? 'text-accent-600' : 'text-primary-600';
         const name = isOpponent ? (theirName || '상대') : (myName || '나');
 
         return (
@@ -150,7 +150,7 @@ export default function VerdictCard({
         {/* Stage badge */}
         <span className={`inline-block px-2.5 py-0.5 rounded-full text-caption font-medium ${
           fight.stage === 'APPEAL'
-            ? 'bg-amber-100 text-amber-700'
+            ? 'bg-accent-100 text-accent-700'
             : 'bg-primary-100 text-primary-700'
         }`}>
           {fight.stage === 'APPEAL' ? '2심 판결 (항소심)' : '1심 판결'}

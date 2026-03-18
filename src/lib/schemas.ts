@@ -54,6 +54,44 @@ export const judgeSchema = z.object({
   created_at: z.string(),
 });
 
+// ── DB direct query schemas ──
+
+export const judgeVoteSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  judge_id: z.string(),
+  is_upvote: z.boolean(),
+  created_at: z.string(),
+});
+
+export const tokenLogSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  amount: z.number(),
+  reason: z.string(),
+  created_at: z.string(),
+});
+
+export const profileTokenSchema = z.object({
+  token: z.number(),
+});
+
+/**
+ * Safe parse helper for Supabase direct queries.
+ * Validates data with Zod schema, returns null on failure.
+ */
+export function safeParseArray<T>(schema: z.ZodType<T>, data: unknown[]): T[] {
+  return data.flatMap((item) => {
+    const result = schema.safeParse(item);
+    return result.success ? [result.data] : [];
+  });
+}
+
+export function safeParseSingle<T>(schema: z.ZodType<T>, data: unknown): T | null {
+  const result = schema.safeParse(data);
+  return result.success ? result.data : null;
+}
+
 // ── Edge Function response schemas ──
 
 export const createFightResponseSchema = z.object({
@@ -104,6 +142,16 @@ export const judgeManageResponseSchema = z.object({
 export const adRewardResponseSchema = z.object({
   amount: z.number(),
   tokenBalance: z.number(),
+});
+
+export const premiumCheckResponseSchema = z.object({
+  granted: z.boolean(),
+  tokenBalance: z.number().nullable(),
+  grantedAmount: z.number().optional(),
+});
+
+export const deleteAccountResponseSchema = z.object({
+  success: z.boolean(),
 });
 
 // ── Auth response schema ──

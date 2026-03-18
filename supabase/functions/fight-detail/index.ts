@@ -51,7 +51,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Spend 2 tokens
+    // If already unlocked, return for free
+    if (fight.detail_unlocked) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('token')
+        .eq('id', user.id)
+        .single();
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          verdict_detail: fight.verdict_detail,
+          tokenBalance: profile?.token ?? 0,
+        }),
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // First time: spend 2 tokens and mark as unlocked
     const newBalance = await spendTokens(supabaseAdmin, user.id, 2, 'FIGHT_DETAIL');
     if (newBalance === null) {
       return new Response(
@@ -59,6 +77,11 @@ Deno.serve(async (req) => {
         { status: 402, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
+
+    await supabaseAdmin
+      .from('fights')
+      .update({ detail_unlocked: true })
+      .eq('id', fight_id);
 
     return new Response(
       JSON.stringify({

@@ -3,7 +3,14 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { callEdgeFunction } from './edge';
-import { createJudgeResponseSchema, judgeManageResponseSchema } from '@/lib/schemas';
+import {
+  createJudgeResponseSchema,
+  judgeManageResponseSchema,
+  judgeSchema,
+  judgeVoteSchema,
+  safeParseArray,
+  safeParseSingle,
+} from '@/lib/schemas';
 import type { Judge, JudgeVote } from '@/types/database';
 
 export interface CreateJudgeWizardData {
@@ -16,7 +23,7 @@ export interface CreateJudgeWizardData {
   q5: string;
 }
 
-// Judge list (official/user filter)
+// Judge list (official/user filter) - Zod validated
 export async function getJudges(
   type: 'official' | 'user' | 'all' = 'all',
   sort: 'score' | 'recent' = 'score'
@@ -42,7 +49,7 @@ export async function getJudges(
 
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return safeParseArray(judgeSchema, data ?? []) as Judge[];
 }
 
 // Official judges
@@ -50,7 +57,7 @@ export async function getOfficialJudges(): Promise<Judge[]> {
   return getJudges('official', 'score');
 }
 
-// Single judge
+// Single judge - Zod validated
 export async function getJudge(judgeId: string): Promise<Judge | null> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -64,10 +71,10 @@ export async function getJudge(judgeId: string): Promise<Judge | null> {
     throw new Error(error.message);
   }
 
-  return data;
+  return safeParseSingle(judgeSchema, data) as Judge | null;
 }
 
-// My judges
+// My judges - Zod validated
 export async function getMyJudges(): Promise<Judge[]> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -80,7 +87,7 @@ export async function getMyJudges(): Promise<Judge[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return safeParseArray(judgeSchema, data ?? []) as Judge[];
 }
 
 // Create judge (Edge Function)
@@ -104,7 +111,7 @@ export async function deleteJudge(judgeId: string) {
   });
 }
 
-// Vote on judge (upsert)
+// Vote on judge (upsert) - Zod validated
 export async function voteJudge(
   judgeId: string,
   isUpvote: boolean
@@ -127,10 +134,13 @@ export async function voteJudge(
     .single();
 
   if (error) throw new Error(error.message);
-  return data;
+
+  const parsed = safeParseSingle(judgeVoteSchema, data);
+  if (!parsed) throw new Error('Invalid vote response');
+  return parsed as JudgeVote;
 }
 
-// Get user's votes for judges
+// Get user's votes for judges - Zod validated
 export async function getUserVotes(judgeIds: string[]): Promise<JudgeVote[]> {
   if (judgeIds.length === 0) return [];
 
@@ -145,5 +155,5 @@ export async function getUserVotes(judgeIds: string[]): Promise<JudgeVote[]> {
     .in('judge_id', judgeIds);
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return safeParseArray(judgeVoteSchema, data ?? []) as JudgeVote[];
 }

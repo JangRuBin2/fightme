@@ -2,6 +2,7 @@ import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { spendTokens } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
+import { validateStringLength } from '../_shared/validate.ts';
 
 const SINGLE_DEFENSE_SCHEMA = {
   type: 'object' as const,
@@ -9,15 +10,6 @@ const SINGLE_DEFENSE_SCHEMA = {
     defense_text: { type: 'string' as const, description: '변론문 300자 이내' },
   },
   required: ['defense_text'],
-};
-
-const BOTH_DEFENSE_SCHEMA = {
-  type: 'object' as const,
-  properties: {
-    user_defense: { type: 'string' as const, description: '원고 변론문 200자 이내' },
-    opponent_defense: { type: 'string' as const, description: '피고 변론문 200자 이내' },
-  },
-  required: ['user_defense', 'opponent_defense'],
 };
 
 interface DefenseSection {
@@ -29,54 +21,70 @@ interface DefenseData {
   sections: DefenseSection[];
 }
 
+const PLAINTIFF_SYSTEM_PROMPT = `너는 원고 전담 변호사다. 반드시 원고의 입장만 대변해야 한다.
+- 원고가 왜 정당한지 적극적으로 주장해라.
+- 피고 주장의 모순점과 허점을 지적해라.
+- 절대 피고의 입장에 동조하거나 원고의 잘못을 인정하지 마라.
+- 감정적이 아닌 논리적으로, 하지만 강력하게 변론해라.`;
+
+const DEFENDANT_SYSTEM_PROMPT = `너는 피고 전담 변호사다. 반드시 피고의 입장만 대변해야 한다.
+- 피고가 왜 정당한지 적극적으로 주장해라.
+- 원고 주장의 모순점과 허점을 지적해라.
+- 절대 원고의 입장에 동조하거나 피고의 잘못을 인정하지 마라.
+- 감정적이 아닌 논리적으로, 하지만 강력하게 변론해라.`;
+
+async function generateSingleDefense(
+  userClaim: string,
+  opponentClaim: string,
+  side: 'user' | 'opponent',
+): Promise<{ side: 'user' | 'opponent'; text: string }> {
+  const isOpponent = side === 'opponent';
+  const systemPrompt = isOpponent ? DEFENDANT_SYSTEM_PROMPT : PLAINTIFF_SYSTEM_PROMPT;
+
+  const userPrompt = isOpponent
+    ? `아래 싸움에서 피고를 변호해라.
+
+[원고 주장]: ${userClaim}
+[피고 주장]: ${opponentClaim}
+
+피고의 입장이 왜 정당한지, 원고 주장의 어떤 점이 부당한지 강력하게 변론해라.`
+    : `아래 싸움에서 원고를 변호해라.
+
+[원고 주장]: ${userClaim}
+[피고 주장]: ${opponentClaim}
+
+원고의 입장이 왜 정당한지, 피고 주장의 어떤 점이 부당한지 강력하게 변론해라.`;
+
+  const text = await callGemini({
+    systemPrompt,
+    userPrompt,
+    maxTokens: 4096,
+    responseSchema: SINGLE_DEFENSE_SCHEMA,
+  });
+  const parsed = extractJson<{ defense_text: string }>(text, SINGLE_DEFENSE_SCHEMA);
+  return { side, text: parsed.defense_text };
+}
+
 async function generateAIDefense(
   userClaim: string,
   opponentClaim: string,
   defenseSide: string,
 ): Promise<DefenseData> {
   if (defenseSide === 'both') {
-    const userPrompt = `너는 유능한 AI 변호사다. 원고와 피고 각각의 입장을 따로 변호해야 한다.
-
-[원고 주장]: ${userClaim}
-[피고 주장]: ${opponentClaim}
-
-원고 편 변론과 피고 편 변론을 각각 작성해라. 각각 상대방보다 덜 잘못한 이유를 설득력 있게 주장해야 한다.`;
-
-    const text = await callGemini({
-      userPrompt,
-      maxTokens: 4096,
-      responseSchema: BOTH_DEFENSE_SCHEMA,
-    });
-    const parsed = extractJson<{ user_defense: string; opponent_defense: string }>(text, BOTH_DEFENSE_SCHEMA);
+    // 각 측 변호사를 독립적으로 호출하여 진정한 양측 변론 생성
+    const [userDefense, opponentDefense] = await Promise.all([
+      generateSingleDefense(userClaim, opponentClaim, 'user'),
+      generateSingleDefense(userClaim, opponentClaim, 'opponent'),
+    ]);
     return {
-      sections: [
-        { side: 'user', text: parsed.user_defense },
-        { side: 'opponent', text: parsed.opponent_defense },
-      ],
+      sections: [userDefense, opponentDefense],
     };
   }
 
-  const isOpponent = defenseSide === 'opponent';
-  const userPrompt = isOpponent
-    ? `너는 유능한 AI 변호사다. 피고(상대방)의 입장을 최대한 변호해야 한다.
-[원고 주장]: ${userClaim}
-[피고 주장]: ${opponentClaim}
-피고의 입장에서 왜 피고가 덜 잘못했는지 설득력 있게 변론해라.`
-    : `너는 유능한 AI 변호사다. 의뢰인(원고)의 입장을 최대한 변호해야 한다.
-[의뢰인 주장]: ${userClaim}
-[상대방 주장]: ${opponentClaim}
-의뢰인의 입장에서 왜 의뢰인이 덜 잘못했는지 설득력 있게 변론해라.`;
-
-  const text = await callGemini({
-    userPrompt,
-    maxTokens: 4096,
-    responseSchema: SINGLE_DEFENSE_SCHEMA,
-  });
-  const parsed = extractJson<{ defense_text: string }>(text, SINGLE_DEFENSE_SCHEMA);
+  const side = defenseSide === 'opponent' ? 'opponent' as const : 'user' as const;
+  const defense = await generateSingleDefense(userClaim, opponentClaim, side);
   return {
-    sections: [
-      { side: isOpponent ? 'opponent' : 'user', text: parsed.defense_text },
-    ],
+    sections: [defense],
   };
 }
 
@@ -126,6 +134,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (defense_type === 'self') {
+      const lengthError = validateStringLength(defense_text, '변론 내용', 300);
+      if (lengthError) {
+        return new Response(
+          JSON.stringify({ error: lengthError }),
+          { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     const supabaseAdmin = createAdminClient();
 
     // Get fight
@@ -168,9 +186,11 @@ Deno.serve(async (req) => {
     if (defense_type === 'ai') {
       defenseData = await generateAIDefense(fight.user_claim, fight.opponent_claim, side);
     } else {
+      // 직접 변호: "both"일 때도 user 텍스트 하나만 올 수 있으므로 user side로 저장
+      const selfSide = side === 'opponent' ? 'opponent' as const : 'user' as const;
       defenseData = {
         sections: [
-          { side: side === 'opponent' ? 'opponent' : 'user', text: defense_text },
+          { side: selfSide, text: defense_text },
         ],
       };
     }

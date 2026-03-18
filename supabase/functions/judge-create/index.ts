@@ -2,6 +2,7 @@ import { getCorsHeaders, handleCors } from '../_shared/cors.ts';
 import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts';
 import { spendTokens } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
+import { validateInputs } from '../_shared/validate.ts';
 
 const JUDGE_CREATE_COST = 100;
 
@@ -128,6 +129,22 @@ Deno.serve(async (req) => {
     if (!name || !speech_style || !q1 || !q2 || !q3 || !q4 || !q5) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const inputError = validateInputs([
+      { value: name, field: '판사 이름', max: 20 },
+      { value: speech_style, field: '말투 스타일', max: 50 },
+      { value: q1, field: '답변1', max: 100 },
+      { value: q2, field: '답변2', max: 100 },
+      { value: q3, field: '답변3', max: 100 },
+      { value: q4, field: '답변4', max: 100 },
+      { value: q5, field: '답변5', max: 100 },
+    ]);
+    if (inputError) {
+      return new Response(
+        JSON.stringify({ error: inputError }),
         { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }

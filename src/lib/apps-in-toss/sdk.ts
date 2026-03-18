@@ -4,10 +4,26 @@
 
 import { appLogin } from '@apps-in-toss/web-framework';
 
+import { z } from 'zod';
 import type {
   IapPurchaseResult,
   IapProductSku,
 } from '@/types/iap';
+
+// Zod schemas for Toss SDK responses
+const tossProductSchema = z.object({
+  sku: z.string(),
+  displayAmount: z.string(),
+  displayName: z.string(),
+  iconUrl: z.string().optional(),
+  description: z.string().optional(),
+});
+
+const tossPendingOrderSchema = z.object({
+  orderId: z.string(),
+  sku: z.string(),
+  paymentCompletedDate: z.string(),
+});
 
 // 앱인토스 환경 감지
 export function isAppsInTossEnvironment(): boolean {
@@ -57,8 +73,9 @@ export async function getProductItemList() {
 
   try {
     const result = await IAP.getProductItemList();
-    if (!result) return null;
-    return result.products;
+    if (!result?.products) return null;
+    const parsed = z.array(tossProductSchema).safeParse(result.products);
+    return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
@@ -123,8 +140,10 @@ export async function getPendingOrders() {
 
   try {
     const result = await IAP.getPendingOrders();
-    if (!result) return [];
-    return result.orders.map((order) => ({
+    if (!result?.orders) return [];
+    const parsed = z.array(tossPendingOrderSchema).safeParse(result.orders);
+    if (!parsed.success) return [];
+    return parsed.data.map((order) => ({
       orderId: order.orderId,
       sku: order.sku,
       purchasedAt: order.paymentCompletedDate,

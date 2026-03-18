@@ -25,10 +25,10 @@ function DefensePreview({ sections }: { sections: DefenseSectionData[] }) {
         const isOpponent = section.side === 'opponent';
         const label = isOpponent ? '상대 측 변론' : '내 측 변론';
         return (
-          <div key={i} className={`${isOpponent ? 'bg-amber-50' : 'bg-blue-50'} rounded-xl p-4`}>
+          <div key={i} className={`${isOpponent ? 'bg-accent-50' : 'bg-primary-50'} rounded-xl p-4`}>
             <div className="flex items-center gap-1.5 mb-2">
-              <Shield className={`w-4 h-4 ${isOpponent ? 'text-amber-500' : 'text-blue-500'}`} />
-              <p className={`text-body2 font-medium ${isOpponent ? 'text-amber-600' : 'text-blue-600'}`}>
+              <Shield className={`w-4 h-4 ${isOpponent ? 'text-accent-500' : 'text-primary-500'}`} />
+              <p className={`text-body2 font-medium ${isOpponent ? 'text-accent-600' : 'text-primary-600'}`}>
                 {label}
               </p>
             </div>

@@ -7,6 +7,7 @@ export interface Profile {
   token: number;
   is_premium: boolean;
   premium_expires_at: string | null;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,7 +81,8 @@ export type TokenReason =
   | 'FIGHT_DEFENSE_AI'
   | 'FIGHT_DEFENSE_SELF'
   | 'JUDGE_CREATE'
-  | 'IAP_PURCHASE';
+  | 'IAP_PURCHASE'
+  | 'PREMIUM_MONTHLY';
 
 export interface TokenLog {
   id: string;

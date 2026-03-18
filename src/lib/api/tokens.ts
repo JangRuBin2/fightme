@@ -2,10 +2,18 @@
 
 import { createClient } from '@/lib/supabase/client';
 import { callEdgeFunction } from './edge';
-import { adRewardResponseSchema } from '@/lib/schemas';
+import {
+  adRewardResponseSchema,
+  premiumCheckResponseSchema,
+  deleteAccountResponseSchema,
+  profileTokenSchema,
+  tokenLogSchema,
+  safeParseArray,
+  safeParseSingle,
+} from '@/lib/schemas';
 import type { TokenLog } from '@/types/database';
 
-// Get token balance
+// Get token balance (Zod validated)
 export async function getTokenBalance(): Promise<number | null> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,7 +26,9 @@ export async function getTokenBalance(): Promise<number | null> {
     .single();
 
   if (error || !data) return null;
-  return data.token ?? 0;
+
+  const parsed = safeParseSingle(profileTokenSchema, data);
+  return parsed?.token ?? 0;
 }
 
 // Watch ad for token reward
@@ -26,7 +36,16 @@ export async function watchAdForTokens() {
   return callEdgeFunction('token-ad-reward', adRewardResponseSchema);
 }
 
-// Get token logs
+// Check and grant premium monthly tokens (on-demand)
+export async function checkPremiumMonthly(): Promise<{ granted: boolean; tokenBalance: number | null }> {
+  try {
+    return await callEdgeFunction('token-premium-check', premiumCheckResponseSchema);
+  } catch {
+    return { granted: false, tokenBalance: null };
+  }
+}
+
+// Get token logs (Zod validated)
 export async function getTokenLogs(limit = 20): Promise<TokenLog[]> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -40,5 +59,15 @@ export async function getTokenLogs(limit = 20): Promise<TokenLog[]> {
     .limit(limit);
 
   if (error) return [];
-  return data ?? [];
+  return safeParseArray(tokenLogSchema, data ?? []) as TokenLog[];
+}
+
+// Delete account (calls auth-delete-account Edge Function)
+export async function deleteAccount(): Promise<boolean> {
+  try {
+    await callEdgeFunction('auth-delete-account', deleteAccountResponseSchema);
+    return true;
+  } catch {
+    return false;
+  }
 }

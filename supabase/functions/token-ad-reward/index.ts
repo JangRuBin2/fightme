@@ -29,6 +29,23 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createAdminClient();
 
+    // Rate limit: 1 ad reward per minute
+    const oneMinuteAgo = new Date(Date.now() - 60_000).toISOString();
+    const { data: recentRewards } = await supabaseAdmin
+      .from('token_logs')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('reason', 'AD_REWARD')
+      .gte('created_at', oneMinuteAgo)
+      .limit(1);
+
+    if (recentRewards && recentRewards.length > 0) {
+      return new Response(
+        JSON.stringify({ error: '잠시 후 다시 시도해주세요', code: 'AD_COOLDOWN' }),
+        { status: 429, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Grant tokens for watching ad
     const newBalance = await grantTokens(supabaseAdmin, user.id, AD_REWARD_AMOUNT, 'AD_REWARD');
 

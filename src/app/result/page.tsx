@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Swords, Sparkles } from 'lucide-react';
 import FaultGauge from '@/components/fight/FaultGauge';
@@ -20,7 +20,20 @@ export default function ResultPage() {
 function ResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const fightId = searchParams.get('id');
+  const pathname = usePathname();
+
+  // /result/?id=xxx (쿼리) 또는 /result/{id} (path param, 토스 딥링크) 둘 다 지원
+  const fightId = useMemo(() => {
+    const fromQuery = searchParams.get('id');
+    if (fromQuery) return fromQuery;
+
+    // path param: /result/{uuid}
+    const segments = pathname.split('/').filter(Boolean);
+    if (segments.length >= 2 && segments[0] === 'result') {
+      return segments[1];
+    }
+    return null;
+  }, [searchParams, pathname]);
   const [fight, setFight] = useState<Fight | null>(null);
   const [judge, setJudge] = useState<Judge | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +100,7 @@ function ResultContent() {
         </div>
 
         {fight.stage === 'APPEAL' && (
-          <span className="block mb-2 px-2.5 py-0.5 rounded-full text-caption font-medium bg-amber-100 text-amber-700 w-fit mx-auto">
+          <span className="block mb-2 px-2.5 py-0.5 rounded-full text-caption font-medium bg-accent-100 text-accent-700 w-fit mx-auto">
             항소심
           </span>
         )}

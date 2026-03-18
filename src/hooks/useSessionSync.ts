@@ -14,11 +14,14 @@ export function useSessionSync() {
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    const supabase = createClient();
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const syncSession = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         clearAuth();
       }
-    });
+    };
+
+    syncSession();
   }, [isLoggedIn, clearAuth, router]);
 }

@@ -10,6 +10,9 @@ import {
   publicFightResponseSchema,
   appealResponseSchema,
   defenseResponseSchema,
+  fightSchema,
+  safeParseArray,
+  safeParseSingle,
 } from '@/lib/schemas';
 import type { Fight, Judge } from '@/types/database';
 
@@ -32,7 +35,7 @@ export async function createFight(
   });
 }
 
-// Get single fight
+// Get single fight (Zod validated)
 export async function getFight(fightId: string): Promise<Fight | null> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -46,10 +49,10 @@ export async function getFight(fightId: string): Promise<Fight | null> {
     throw new Error(error.message);
   }
 
-  return data;
+  return safeParseSingle(fightSchema, data) as Fight | null;
 }
 
-// Get user's fight list
+// Get user's fight list (Zod validated)
 export async function getUserFights(userId: string): Promise<Fight[]> {
   const supabase = createClient();
   const { data, error } = await supabase
@@ -59,7 +62,7 @@ export async function getUserFights(userId: string): Promise<Fight[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return safeParseArray(fightSchema, data ?? []) as Fight[];
 }
 
 // Reveal verdict (spend 2 tokens) (Edge Function)
