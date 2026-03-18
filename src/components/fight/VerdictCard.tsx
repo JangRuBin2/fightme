@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Quote, Lock, Shield } from 'lucide-react';
+import { ChevronDown, ChevronUp, Quote, Shield } from 'lucide-react';
 import FaultGauge from './FaultGauge';
 import type { Fight, Judge } from '@/types/database';
 
@@ -40,17 +40,11 @@ function DefenseDisplay({ defense, compact, myName, theirName }: { defense: Figh
 interface VerdictCardProps {
   fight: Fight;
   judge: Judge | { id: string; name: string; description?: string | null };
-  verdictDetail?: string | null;
-  onRequestDetail?: () => void;
-  isDetailLoading?: boolean;
 }
 
 export default function VerdictCard({
   fight,
   judge,
-  verdictDetail,
-  onRequestDetail,
-  isDetailLoading,
 }: VerdictCardProps) {
   const [showDetail, setShowDetail] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -197,71 +191,47 @@ export default function VerdictCard({
           <DefenseDisplay defense={fight.defense} myName={myName} theirName={theirName} />
         )}
 
-        {/* Detail (collapsible) */}
-        <div>
-          <button
-            onClick={() => {
-              if (!verdictDetail && !fight.verdict_detail && onRequestDetail) {
-                onRequestDetail();
-                return;
-              }
-              setShowDetail(!showDetail);
-            }}
-            className="flex items-center gap-1 text-body2 font-medium text-gray-500
-                       active:text-gray-700 transition-colors w-full justify-center"
-          >
-            {verdictDetail || fight.verdict_detail ? (
-              <>
-                판결 근거
-                {showDetail ? (
-                  <ChevronUp className="w-4 h-4" />
-                ) : (
-                  <ChevronDown className="w-4 h-4" />
-                )}
-              </>
-            ) : (
-              <>
-                {isDetailLoading ? (
-                  <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
-                ) : (
-                  <Lock className="w-4 h-4" />
-                )}
-                상세 판결 보기 (토큰 2개)
-              </>
-            )}
-          </button>
+        {/* Detail (collapsible) - verdict_detail is always available */}
+        {fight.verdict_detail && (
+          <div>
+            <button
+              onClick={() => setShowDetail(!showDetail)}
+              className="flex items-center gap-1 text-body2 font-medium text-gray-500
+                         active:text-gray-700 transition-colors w-full justify-center"
+            >
+              판결 근거
+              {showDetail ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
 
-          <AnimatePresence>
-            {showDetail && (verdictDetail || fight.verdict_detail) && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.25 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-3 space-y-2">
-                  {/* Claims summary */}
-                  <div className="grid grid-cols-2 gap-2 text-caption">
-                    <div className="bg-primary-50 rounded-lg p-3">
-                      <p className="font-medium text-primary-500 mb-1">{myName} 주장</p>
-                      <p className="text-gray-600">{fight.user_claim}</p>
+            <AnimatePresence>
+              {showDetail && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-caption">
+                      <div className="bg-primary-50 rounded-lg p-3">
+                        <p className="font-medium text-primary-500 mb-1">{myName} 주장</p>
+                        <p className="text-gray-600">{fight.user_claim}</p>
+                      </div>
+                      <div className="bg-accent-50 rounded-lg p-3">
+                        <p className="font-medium text-accent-500 mb-1">{theirName} 주장</p>
+                        <p className="text-gray-600">{fight.opponent_claim}</p>
+                      </div>
                     </div>
-                    <div className="bg-accent-50 rounded-lg p-3">
-                      <p className="font-medium text-accent-500 mb-1">{theirName} 주장</p>
-                      <p className="text-gray-600">{fight.opponent_claim}</p>
-                    </div>
+                    <p className="text-body2 text-gray-600 leading-relaxed whitespace-pre-line">
+                      {fight.verdict_detail}
+                    </p>
                   </div>
-
-                  {/* Detail text */}
-                  <p className="text-body2 text-gray-600 leading-relaxed whitespace-pre-line">
-                    {verdictDetail || fight.verdict_detail}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </motion.div>
     </div>
   );

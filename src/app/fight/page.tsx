@@ -12,10 +12,9 @@ import {
 import Link from 'next/link';
 import VerdictCard from '@/components/fight/VerdictCard';
 import ShareButton from '@/components/shared/ShareButton';
-import { getFight, getFightDetail } from '@/lib/api/fights';
+import { getFight } from '@/lib/api/fights';
 import { getJudge } from '@/lib/api/judges';
 import { useTokens } from '@/hooks/useTokens';
-import { isInsufficientTokens, getErrorMessage } from '@/lib/errors';
 import type { Fight, Judge } from '@/types/database';
 
 export default function FightResultPage() {
@@ -34,9 +33,7 @@ function FightResultContent() {
   const [judge, setJudge] = useState<Judge | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [verdictDetail, setVerdictDetail] = useState<string | null>(null);
-  const [isDetailLoading, setIsDetailLoading] = useState(false);
-  const { balance, refresh } = useTokens();
+  const { balance } = useTokens();
 
   useEffect(() => {
     if (!fightId) {
@@ -65,22 +62,6 @@ function FightResultContent() {
 
     load();
   }, [fightId]);
-
-  const handleRequestDetail = async () => {
-    if (!fight || isDetailLoading) return;
-    setIsDetailLoading(true);
-    try {
-      const result = await getFightDetail(fight.id);
-      setVerdictDetail(result.verdict_detail);
-      await refresh();
-    } catch (err) {
-      if (isInsufficientTokens(err)) {
-        setError('토큰이 부족합니다');
-      }
-    } finally {
-      setIsDetailLoading(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -134,9 +115,6 @@ function FightResultContent() {
         <VerdictCard
           fight={fight}
           judge={judge || { id: fight.judge_id, name: '판사' }}
-          verdictDetail={verdictDetail}
-          onRequestDetail={handleRequestDetail}
-          isDetailLoading={isDetailLoading}
         />
       </motion.div>
 
