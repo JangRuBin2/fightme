@@ -120,8 +120,8 @@ export const IAP_PRODUCT_INFO: Record<string, {
   },
   [IAP_PRODUCTS.TOKEN_300]: {
     name: '토큰 300개',
-    description: '판결 100회분',
-    price: '6,600원',
+    description: '판결 100회분 · 최고 가성비',
+    price: '4,400원',
     tokenAmount: 300,
     type: 'token',
   },

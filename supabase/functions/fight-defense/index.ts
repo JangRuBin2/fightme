@@ -3,14 +3,17 @@ import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts'
 import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import { validateStringLength } from '../_shared/validate.ts';
+import { checkPremium, getCharLimits } from '../_shared/limits.ts';
 
-const SINGLE_DEFENSE_SCHEMA = {
-  type: 'object' as const,
-  properties: {
-    defense_text: { type: 'string' as const, description: '변론문 300자 이내' },
-  },
-  required: ['defense_text'],
-};
+function getSingleDefenseSchema(isPremium: boolean) {
+  return {
+    type: 'object' as const,
+    properties: {
+      defense_text: { type: 'string' as const, description: isPremium ? '변론문을 상세하게 작성' : '변론문 300자 이내' },
+    },
+    required: ['defense_text'],
+  };
+}
 
 interface DefenseSection {
   side: 'user' | 'opponent';
@@ -37,6 +40,7 @@ async function generateSingleDefense(
   userClaim: string,
   opponentClaim: string,
   side: 'user' | 'opponent',
+  isPremium = false,
 ): Promise<{ side: 'user' | 'opponent'; text: string }> {
   const isOpponent = side === 'opponent';
   const systemPrompt = isOpponent ? DEFENDANT_SYSTEM_PROMPT : PLAINTIFF_SYSTEM_PROMPT;
@@ -55,13 +59,14 @@ async function generateSingleDefense(
 
 원고의 입장이 왜 정당한지, 피고 주장의 어떤 점이 부당한지 강력하게 변론해라.`;
 
+  const schema = getSingleDefenseSchema(isPremium);
   const text = await callGemini({
     systemPrompt,
     userPrompt,
-    maxTokens: 4096,
-    responseSchema: SINGLE_DEFENSE_SCHEMA,
+    maxTokens: isPremium ? 8192 : 4096,
+    responseSchema: schema,
   });
-  const parsed = extractJson<{ defense_text: string }>(text, SINGLE_DEFENSE_SCHEMA);
+  const parsed = extractJson<{ defense_text: string }>(text, schema);
   return { side, text: parsed.defense_text };
 }
 
@@ -69,12 +74,12 @@ async function generateAIDefense(
   userClaim: string,
   opponentClaim: string,
   defenseSide: string,
+  isPremium = false,
 ): Promise<DefenseData> {
   if (defenseSide === 'both') {
-    // 각 측 변호사를 독립적으로 호출하여 진정한 양측 변론 생성
     const [userDefense, opponentDefense] = await Promise.all([
-      generateSingleDefense(userClaim, opponentClaim, 'user'),
-      generateSingleDefense(userClaim, opponentClaim, 'opponent'),
+      generateSingleDefense(userClaim, opponentClaim, 'user', isPremium),
+      generateSingleDefense(userClaim, opponentClaim, 'opponent', isPremium),
     ]);
     return {
       sections: [userDefense, opponentDefense],
@@ -82,7 +87,7 @@ async function generateAIDefense(
   }
 
   const side = defenseSide === 'opponent' ? 'opponent' as const : 'user' as const;
-  const defense = await generateSingleDefense(userClaim, opponentClaim, side);
+  const defense = await generateSingleDefense(userClaim, opponentClaim, side, isPremium);
   return {
     sections: [defense],
   };
@@ -134,8 +139,12 @@ Deno.serve(async (req) => {
       );
     }
 
+    const supabaseAdmin = createAdminClient();
+    const isPremium = await checkPremium(supabaseAdmin, user.id);
+    const charLimits = getCharLimits(isPremium);
+
     if (defense_type === 'self') {
-      const lengthError = validateStringLength(defense_text, '변론 내용', 300);
+      const lengthError = validateStringLength(defense_text, '변론 내용', charLimits.defenseSelf);
       if (lengthError) {
         return new Response(
           JSON.stringify({ error: lengthError }),
@@ -143,8 +152,6 @@ Deno.serve(async (req) => {
         );
       }
     }
-
-    const supabaseAdmin = createAdminClient();
 
     // Get fight
     const { data: fight, error: fightError } = await supabaseAdmin
@@ -176,7 +183,7 @@ Deno.serve(async (req) => {
     let defenseData: DefenseData;
 
     if (defense_type === 'ai') {
-      defenseData = await generateAIDefense(fight.user_claim, fight.opponent_claim, side);
+      defenseData = await generateAIDefense(fight.user_claim, fight.opponent_claim, side, isPremium);
     } else if (side === 'both') {
       // 직접 변호 양쪽: defense_text에 JSON { user, opponent } 형태로 전달됨
       try {

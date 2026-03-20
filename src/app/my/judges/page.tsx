@@ -14,8 +14,9 @@ import {
   XCircle,
   RefreshCw,
   Trash2,
+  EyeOff,
 } from 'lucide-react';
-import { getMyJudges, retryJudgeReview, deleteJudge } from '@/lib/api/judges';
+import { getMyJudges, retryJudgeReview, deleteJudge, deactivateJudge } from '@/lib/api/judges';
 import { useStore } from '@/store/useStore';
 import { getErrorMessage } from '@/lib/errors';
 import type { Judge } from '@/types/database';
@@ -89,6 +90,22 @@ export default function MyJudgesPage() {
     }
   };
 
+  const handleDeactivate = async (judgeId: string, judgeName: string) => {
+    if (!confirm(`"${judgeName}" 판사를 비활성화하시겠습니까?\n다른 사용자에게 더 이상 노출되지 않습니다.`)) return;
+    setActionLoading(judgeId);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await deactivateJudge(judgeId);
+      setSuccessMsg('판사가 비활성화되었습니다');
+      loadJudges();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -147,8 +164,10 @@ export default function MyJudgesPage() {
             const status = getStatusBadge(judge);
             const StatusIcon = status.icon;
             const isLoading = actionLoading === judge.id;
-            const canRetry = !judge.is_approved;
+            const canRetry = !judge.is_approved && judge.reject_reason !== '소유자에 의해 비활성화됨';
             const canDelete = !judge.is_approved || judge.usage_count === 0;
+            const canDeactivate = judge.is_approved && judge.usage_count > 0;
+            const isDeactivated = !judge.is_approved && judge.reject_reason === '소유자에 의해 비활성화됨';
 
             return (
               <motion.div
@@ -156,7 +175,7 @@ export default function MyJudgesPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="card"
+                className={`card ${isDeactivated ? 'opacity-60' : ''}`}
               >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary-100 flex-shrink-0 flex items-center justify-center">
@@ -169,10 +188,17 @@ export default function MyJudgesPage() {
                       <h3 className="text-body1 font-semibold text-gray-900">
                         {judge.name}
                       </h3>
-                      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${status.className}`}>
-                        <StatusIcon className="w-2.5 h-2.5" />
-                        {status.label}
-                      </span>
+                      {isDeactivated ? (
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-200 text-gray-500">
+                          <EyeOff className="w-2.5 h-2.5" />
+                          비활성
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${status.className}`}>
+                          <StatusIcon className="w-2.5 h-2.5" />
+                          {status.label}
+                        </span>
+                      )}
                     </div>
                     {judge.description && (
                       <p className="text-body2 text-gray-500 mb-2">
@@ -180,7 +206,7 @@ export default function MyJudgesPage() {
                       </p>
                     )}
 
-                    {judge.reject_reason && (
+                    {judge.reject_reason && !isDeactivated && (
                       <p className="text-caption text-primary-400 mb-2">
                         반려 사유: {judge.reject_reason}
                       </p>
@@ -199,37 +225,61 @@ export default function MyJudgesPage() {
                       )}
                     </div>
 
-                    {/* Action buttons for non-approved judges */}
-                    {(canRetry || canDelete) && (
-                      <div className="flex gap-2 mt-3">
-                        {canRetry && (
-                          <button
-                            onClick={() => handleRetry(judge.id)}
-                            disabled={isLoading}
-                            className="flex-1 py-2 rounded-lg bg-primary-400 text-white text-caption font-medium flex items-center justify-center gap-1 active:bg-primary-500 disabled:opacity-50"
-                          >
-                            {isLoading ? (
-                              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            ) : (
-                              <>
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                재심사 요청
-                              </>
-                            )}
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button
-                            onClick={() => handleDelete(judge.id, judge.name)}
-                            disabled={isLoading}
-                            className="py-2 px-3 rounded-lg border border-gray-200 text-gray-500 text-caption font-medium flex items-center justify-center gap-1 active:bg-gray-100 disabled:opacity-50"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            삭제
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    {/* Action buttons */}
+                    <div className="flex gap-2 mt-3">
+                      {canRetry && (
+                        <button
+                          onClick={() => handleRetry(judge.id)}
+                          disabled={isLoading}
+                          className="flex-1 py-2 rounded-lg bg-primary-400 text-white text-caption font-medium flex items-center justify-center gap-1 active:bg-primary-500 disabled:opacity-50"
+                        >
+                          {isLoading ? (
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              재심사 요청
+                            </>
+                          )}
+                        </button>
+                      )}
+                      {isDeactivated && (
+                        <button
+                          onClick={() => handleRetry(judge.id)}
+                          disabled={isLoading}
+                          className="flex-1 py-2 rounded-lg bg-accent-400 text-white text-caption font-medium flex items-center justify-center gap-1 active:bg-accent-500 disabled:opacity-50"
+                        >
+                          {isLoading ? (
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              다시 활성화
+                            </>
+                          )}
+                        </button>
+                      )}
+                      {canDeactivate && (
+                        <button
+                          onClick={() => handleDeactivate(judge.id, judge.name)}
+                          disabled={isLoading}
+                          className="py-2 px-3 rounded-lg border border-gray-200 text-gray-500 text-caption font-medium flex items-center justify-center gap-1 active:bg-gray-100 disabled:opacity-50"
+                        >
+                          <EyeOff className="w-3.5 h-3.5" />
+                          비활성화
+                        </button>
+                      )}
+                      {canDelete && !isDeactivated && (
+                        <button
+                          onClick={() => handleDelete(judge.id, judge.name)}
+                          disabled={isLoading}
+                          className="py-2 px-3 rounded-lg border border-gray-200 text-gray-500 text-caption font-medium flex items-center justify-center gap-1 active:bg-gray-100 disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          삭제
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>

@@ -31,6 +31,22 @@ export async function getTokenBalance(): Promise<number | null> {
   return parsed?.token ?? 0;
 }
 
+// Check premium status
+export async function checkPremiumStatus(): Promise<boolean> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('is_premium')
+    .eq('id', user.id)
+    .single();
+
+  if (error || !data) return false;
+  return data.is_premium === true;
+}
+
 // Watch ad for token reward
 export async function watchAdForTokens() {
   return callEdgeFunction('token-ad-reward', adRewardResponseSchema);

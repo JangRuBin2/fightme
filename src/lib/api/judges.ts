@@ -111,6 +111,13 @@ export async function deleteJudge(judgeId: string) {
   });
 }
 
+// Deactivate a judge (hide from other users, keep data)
+export async function deactivateJudge(judgeId: string) {
+  return callEdgeFunction('judge-manage', judgeManageResponseSchema, {
+    body: { action: 'deactivate', judge_id: judgeId },
+  });
+}
+
 // Vote on judge (upsert) - Zod validated
 export async function voteJudge(
   judgeId: string,

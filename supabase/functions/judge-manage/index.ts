@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
       // Only non-approved judges can be deleted by user (or approved ones with 0 usage)
       if (judge.is_approved && judge.usage_count > 0) {
         return new Response(
-          JSON.stringify({ error: '다른 유저가 사용한 판사는 삭제할 수 없습니다' }),
+          JSON.stringify({ error: '사용된 판사는 삭제할 수 없습니다. 비활성화를 이용해주세요.' }),
           { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
         );
       }
@@ -144,8 +144,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (action === 'deactivate') {
+      // 사용된 판사를 삭제하지 않고 비활성화 (다른 사용자에게 노출 X)
+      if (!judge.is_approved) {
+        return new Response(
+          JSON.stringify({ error: '이미 비활성화 상태입니다' }),
+          { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { error: updateError } = await supabaseAdmin
+        .from('judges')
+        .update({ is_approved: false, reject_reason: '소유자에 의해 비활성화됨' })
+        .eq('id', judge_id);
+
+      if (updateError) {
+        throw new Error(`Failed to deactivate judge: ${updateError.message}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, deactivated: true }),
+        { headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Invalid action. Use "retry" or "delete"' }),
+      JSON.stringify({ error: 'Invalid action. Use "retry", "delete", or "deactivate"' }),
       { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
     );
   } catch (err) {

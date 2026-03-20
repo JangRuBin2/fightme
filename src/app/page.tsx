@@ -13,6 +13,7 @@ import { useStore } from '@/store/useStore';
 import { useTokens } from '@/hooks/useTokens';
 import { getErrorCode, getErrorMessage } from '@/lib/errors';
 import { useProcessingGuard } from '@/hooks/useProcessingGuard';
+import { getCharLimits } from '@/lib/limits';
 import type { Judge } from '@/types/database';
 
 export default function HomePage() {
@@ -39,6 +40,8 @@ export default function HomePage() {
   const [showAdModal, setShowAdModal] = useState(false);
   const [pendingFightId, setPendingFightId] = useState<string | null>(null);
   const { balance, refresh } = useTokens();
+  const isPremium = useStore((s) => s.isPremium);
+  const limits = getCharLimits(isPremium);
 
   useEffect(() => {
     getJudges('all')
@@ -148,7 +151,7 @@ export default function HomePage() {
               className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-400 text-gray-50 text-caption font-medium active:bg-primary-500"
             >
               <Plus className="w-3 h-3" />
-              충전
+              무료충전
             </button>
             <button
               onClick={() => router.push('/shop/')}
@@ -175,7 +178,7 @@ export default function HomePage() {
           <input
             className="input-field"
             placeholder="예: 철수"
-            maxLength={10}
+            maxLength={limits.userName ?? undefined}
             value={userName}
             onChange={(e) => storeSetUserName(e.target.value)}
           />
@@ -187,7 +190,7 @@ export default function HomePage() {
           <input
             className="input-field"
             placeholder="예: 영희"
-            maxLength={10}
+            maxLength={limits.opponentName ?? undefined}
             value={opponentName}
             onChange={(e) => storeSetOpponentName(e.target.value)}
           />
@@ -207,13 +210,15 @@ export default function HomePage() {
         <textarea
           className="textarea-field h-28"
           placeholder="내가 왜 맞는지 적어주세요..."
-          maxLength={100}
+          maxLength={limits.userClaim ?? undefined}
           value={userClaim}
           onChange={(e) => storeSetUserClaim(e.target.value)}
         />
-        <p className="text-caption text-gray-400 text-right mt-1">
-          {userClaim.length}/100
-        </p>
+        {limits.userClaim && (
+          <p className="text-caption text-gray-400 text-right mt-1">
+            {userClaim.length}/{limits.userClaim}
+          </p>
+        )}
       </motion.div>
 
       {/* Opponent Claim */}
@@ -229,13 +234,15 @@ export default function HomePage() {
         <textarea
           className="textarea-field h-28"
           placeholder="상대방은 뭐라고 했나요..."
-          maxLength={100}
+          maxLength={limits.opponentClaim ?? undefined}
           value={opponentClaim}
           onChange={(e) => storeSetOpponentClaim(e.target.value)}
         />
-        <p className="text-caption text-gray-400 text-right mt-1">
-          {opponentClaim.length}/100
-        </p>
+        {limits.opponentClaim && (
+          <p className="text-caption text-gray-400 text-right mt-1">
+            {opponentClaim.length}/{limits.opponentClaim}
+          </p>
+        )}
       </motion.div>
 
       {/* Judge Selector */}

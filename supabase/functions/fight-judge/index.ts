@@ -3,20 +3,23 @@ import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts'
 import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import { validateInputs } from '../_shared/validate.ts';
+import { checkPremium, getCharLimits } from '../_shared/limits.ts';
 import type { JudgmentResponse } from '../_shared/types.ts';
 
 const JUDGE_COST = 3;
 
-const JUDGMENT_SCHEMA = {
-  type: 'object' as const,
-  properties: {
-    user_fault: { type: 'integer' as const, description: '원고 과실 비율 0-100' },
-    opponent_fault: { type: 'integer' as const, description: '피고 과실 비율 0-100' },
-    comment: { type: 'string' as const, description: '한줄 판결 50자 이내' },
-    verdict_detail: { type: 'string' as const, description: '판결 이유 2~3문장, 300자 이내' },
-  },
-  required: ['user_fault', 'opponent_fault', 'comment', 'verdict_detail'],
-};
+function getJudgmentSchema(isPremium: boolean) {
+  return {
+    type: 'object' as const,
+    properties: {
+      user_fault: { type: 'integer' as const, description: '원고 과실 비율 0-100' },
+      opponent_fault: { type: 'integer' as const, description: '피고 과실 비율 0-100' },
+      comment: { type: 'string' as const, description: isPremium ? '판결 한줄 요약' : '한줄 판결 50자 이내' },
+      verdict_detail: { type: 'string' as const, description: isPremium ? '판결 이유를 상세하게 설명' : '판결 이유 2~3문장, 300자 이내' },
+    },
+    required: ['user_fault', 'opponent_fault', 'comment', 'verdict_detail'],
+  };
+}
 
 function buildUserPrompt(
   judge: { name: string; prompt: string },
@@ -36,14 +39,15 @@ function buildUserPrompt(
 주의: user_fault + opponent_fault = 100. 캐릭터에 맞는 말투로 재미있게 판결해라.`;
 }
 
-async function getJudgment(systemPrompt: string, userPrompt: string): Promise<JudgmentResponse> {
+async function getJudgment(systemPrompt: string, userPrompt: string, isPremium: boolean): Promise<JudgmentResponse> {
+  const schema = getJudgmentSchema(isPremium);
   const text = await callGemini({
     systemPrompt,
     userPrompt,
-    maxTokens: 4096,
-    responseSchema: JUDGMENT_SCHEMA,
+    maxTokens: isPremium ? 8192 : 4096,
+    responseSchema: schema,
   });
-  return extractJson<JudgmentResponse>(text, JUDGMENT_SCHEMA);
+  return extractJson<JudgmentResponse>(text, schema);
 }
 
 Deno.serve(async (req) => {
@@ -78,11 +82,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    const supabaseAdmin = createAdminClient();
+    const isPremium = await checkPremium(supabaseAdmin, user.id);
+    const charLimits = getCharLimits(isPremium);
+
     const inputError = validateInputs([
-      { value: user_claim, field: '내 주장', max: 200 },
-      { value: opponent_claim, field: '상대 주장', max: 200 },
-      { value: user_name, field: '내 이름', max: 20, required: false },
-      { value: opponent_name, field: '상대 이름', max: 20, required: false },
+      { value: user_claim, field: '내 주장', max: charLimits.userClaim },
+      { value: opponent_claim, field: '상대 주장', max: charLimits.opponentClaim },
+      { value: user_name, field: '내 이름', max: charLimits.userName, required: false },
+      { value: opponent_name, field: '상대 이름', max: charLimits.opponentName, required: false },
     ]);
     if (inputError) {
       return new Response(
@@ -90,8 +98,6 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
-
-    const supabaseAdmin = createAdminClient();
 
     // Get judge data
     const { data: judge, error: judgeError } = await supabaseAdmin
@@ -127,7 +133,7 @@ Deno.serve(async (req) => {
     const userName = user_name || '원고';
     const opponentNameStr = opponent_name || '피고';
     const userPrompt = buildUserPrompt(judge, user_claim, opponent_claim, userName, opponentNameStr);
-    const judgment = await getJudgment(systemPrompt, userPrompt);
+    const judgment = await getJudgment(systemPrompt, userPrompt, isPremium);
 
     // Validate fault sum = 100
     const faultSum = judgment.user_fault + judgment.opponent_fault;

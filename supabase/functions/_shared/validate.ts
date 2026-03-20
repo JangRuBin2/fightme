@@ -12,7 +12,7 @@ export function validateStringLength(
   if (required && (!value || typeof value !== 'string' || value.trim().length === 0)) {
     return `${fieldName}은(는) 필수입니다`;
   }
-  if (value && typeof value === 'string' && value.length > maxLength) {
+  if (maxLength > 0 && value && typeof value === 'string' && value.length > maxLength) {
     return `${fieldName}은(는) ${maxLength}자 이내로 입력해주세요`;
   }
   return null;

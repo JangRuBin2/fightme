@@ -5,7 +5,7 @@ import { useStore } from '@/store/useStore';
 import { getTokenBalance, watchAdForTokens, checkPremiumMonthly } from '@/lib/api/tokens';
 
 export function useTokens() {
-  const { tokenBalance, setTokenBalance, adjustTokens, isLoggedIn } = useStore();
+  const { tokenBalance, setTokenBalance, adjustTokens, isLoggedIn, setPremium } = useStore();
 
   const refresh = useCallback(async () => {
     if (!isLoggedIn) return;
@@ -14,6 +14,7 @@ export function useTokens() {
       const premiumResult = await checkPremiumMonthly();
       if (premiumResult.granted && premiumResult.tokenBalance !== null) {
         setTokenBalance(premiumResult.tokenBalance);
+        setPremium(true);
         return;
       }
 
@@ -21,10 +22,15 @@ export function useTokens() {
       if (balance !== null) {
         setTokenBalance(balance);
       }
+
+      // Sync premium status
+      const { checkPremiumStatus } = await import('@/lib/api/tokens');
+      const premium = await checkPremiumStatus();
+      setPremium(premium);
     } catch {
       // silent fail - keep existing store value
     }
-  }, [isLoggedIn, setTokenBalance]);
+  }, [isLoggedIn, setTokenBalance, setPremium]);
 
   // Refresh on mount
   useEffect(() => {

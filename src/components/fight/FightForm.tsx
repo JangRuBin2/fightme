@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Swords } from 'lucide-react';
-
-const MAX_CHARS = 100;
+import { useStore } from '@/store/useStore';
+import { getCharLimits } from '@/lib/limits';
 
 interface FightFormProps {
   onSubmit: (myClaim: string, opponentClaim: string) => void;
@@ -12,6 +12,8 @@ interface FightFormProps {
 }
 
 export default function FightForm({ onSubmit, disabled = false }: FightFormProps) {
+  const isPremium = useStore((s) => s.isPremium);
+  const limits = getCharLimits(isPremium);
   const [myClaim, setMyClaim] = useState('');
   const [opponentClaim, setOpponentClaim] = useState('');
 
@@ -39,14 +41,16 @@ export default function FightForm({ onSubmit, disabled = false }: FightFormProps
         <textarea
           className="textarea-field h-28"
           placeholder="내가 왜 맞는지 적어주세요..."
-          maxLength={MAX_CHARS}
+          maxLength={limits.userClaim ?? undefined}
           value={myClaim}
           onChange={(e) => setMyClaim(e.target.value)}
           disabled={disabled}
         />
-        <p className="text-caption text-gray-400 text-right mt-1">
-          {myClaim.length}/{MAX_CHARS}
-        </p>
+        {limits.userClaim && (
+          <p className="text-caption text-gray-400 text-right mt-1">
+            {myClaim.length}/{limits.userClaim}
+          </p>
+        )}
       </motion.div>
 
       {/* Opponent Claim */}
@@ -61,14 +65,16 @@ export default function FightForm({ onSubmit, disabled = false }: FightFormProps
         <textarea
           className="textarea-field h-28"
           placeholder="상대방은 뭐라고 했나요..."
-          maxLength={MAX_CHARS}
+          maxLength={limits.userClaim ?? undefined}
           value={opponentClaim}
           onChange={(e) => setOpponentClaim(e.target.value)}
           disabled={disabled}
         />
-        <p className="text-caption text-gray-400 text-right mt-1">
-          {opponentClaim.length}/{MAX_CHARS}
-        </p>
+        {limits.userClaim && (
+          <p className="text-caption text-gray-400 text-right mt-1">
+            {opponentClaim.length}/{limits.userClaim}
+          </p>
+        )}
       </motion.div>
 
       {/* Submit Button */}

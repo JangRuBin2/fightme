@@ -131,19 +131,26 @@ function FightResultContent() {
           transition={{ delay: 0.5 }}
           className="flex flex-col gap-3 mt-6"
         >
-          <Link
-            href={`/fight/defense/?id=${fightId}`}
-            className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2"
-          >
-            <Shield className="w-5 h-5" />
-            변론 추가하기
-          </Link>
+          {!fight.defense ? (
+            <Link
+              href={`/fight/defense/?id=${fightId}`}
+              className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center bg-primary-400 text-white active:bg-primary-500 flex items-center justify-center gap-2"
+            >
+              <Shield className="w-5 h-5" />
+              변론 추가하기
+            </Link>
+          ) : (
+            <div className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center bg-gray-200 text-gray-400 flex items-center justify-center gap-2 cursor-not-allowed">
+              <Shield className="w-5 h-5" />
+              변론 완료
+            </div>
+          )}
           <Link
             href={`/fight/appeal/?id=${fightId}`}
             className="w-full py-3.5 rounded-xl font-semibold text-body1 text-center border-2 border-primary-400 text-primary-400 active:bg-primary-50 flex items-center justify-center gap-2"
           >
             <RotateCcw className="w-5 h-5" />
-            판사 바꿔서 다시 판결 (토큰 5개)
+            항소하기 (토큰 5개)
           </Link>
           <ShareButton fight={fight} judgeName={judge?.name || '판사'} />
         </motion.div>

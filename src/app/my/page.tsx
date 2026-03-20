@@ -14,6 +14,7 @@ import {
   Info,
   Palette,
   Check,
+  Receipt,
 } from 'lucide-react';
 import AdModal from '@/components/shared/AdModal';
 import { useStore } from '@/store/useStore';
@@ -115,7 +116,7 @@ export default function MyPage() {
             className="px-3 py-1.5 rounded-full bg-accent-400 text-white text-caption font-medium"
             onClick={() => setShowAdModal(true)}
           >
-            충전
+            무료충전
           </button>
         </div>
       </motion.div>
@@ -154,6 +155,22 @@ export default function MyPage() {
             <div className="flex-1 text-left">
               <h3 className="text-body1 font-medium text-gray-900">내 판사</h3>
               <p className="text-caption text-gray-500">내가 만든 판사 관리</p>
+            </div>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </div>
+        </button>
+
+        <button
+          className="card card-pressed w-full"
+          onClick={() => router.push('/my/tokens/')}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+              <Receipt className="w-5 h-5 text-green-500" />
+            </div>
+            <div className="flex-1 text-left">
+              <h3 className="text-body1 font-medium text-gray-900">토큰 내역</h3>
+              <p className="text-caption text-gray-500">충전 및 사용 기록</p>
             </div>
             <ChevronRight className="w-5 h-5 text-gray-400" />
           </div>

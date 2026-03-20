@@ -3,6 +3,7 @@ import { createSupabaseClient, createAdminClient } from '../_shared/supabase.ts'
 import { spendTokens, checkTokenBalance } from '../_shared/tokens.ts';
 import { callGemini, extractJson } from '../_shared/gemini.ts';
 import { validateInputs } from '../_shared/validate.ts';
+import { checkPremium, getCharLimits } from '../_shared/limits.ts';
 
 const JUDGE_CREATE_COST = 100;
 
@@ -36,14 +37,16 @@ const REVIEW_SCHEMA = {
   required: ['approved', 'reason'],
 };
 
-const GENERATE_SCHEMA = {
-  type: 'object' as const,
-  properties: {
-    prompt: { type: 'string' as const, description: '판사 시스템 프롬프트 200자 이내' },
-    description: { type: 'string' as const, description: '판사 한줄 소개 30자 이내' },
-  },
-  required: ['prompt', 'description'],
-};
+function getGenerateSchema(isPremium: boolean) {
+  return {
+    type: 'object' as const,
+    properties: {
+      prompt: { type: 'string' as const, description: isPremium ? '판사 시스템 프롬프트를 상세하게 작성' : '판사 시스템 프롬프트 200자 이내' },
+      description: { type: 'string' as const, description: isPremium ? '판사 한줄 소개' : '판사 한줄 소개 30자 이내' },
+    },
+    required: ['prompt', 'description'],
+  };
+}
 
 async function generateJudgePrompt(data: {
   name: string;
@@ -53,7 +56,7 @@ async function generateJudgePrompt(data: {
   q3: string;
   q4: string;
   q5: string;
-}): Promise<{ prompt: string; description: string }> {
+}, isPremium = false): Promise<{ prompt: string; description: string }> {
   const userPrompt = `다음 정보를 기반으로 판사 캐릭터의 시스템 프롬프트와 한줄 설명을 만들어줘.
 
 이름: ${data.name}
@@ -66,12 +69,13 @@ Q5 (한마디 스타일): ${data.q5}
 
 말투 스타일에 맞게 프롬프트를 작성해. 사용자가 입력한 말투를 최대한 반영해야 한다.`;
 
+  const schema = getGenerateSchema(isPremium);
   const text = await callGemini({
     userPrompt,
-    maxTokens: 4096,
-    responseSchema: GENERATE_SCHEMA,
+    maxTokens: isPremium ? 8192 : 4096,
+    responseSchema: schema,
   });
-  return extractJson<{ prompt: string; description: string }>(text, GENERATE_SCHEMA);
+  return extractJson<{ prompt: string; description: string }>(text, schema);
 }
 
 async function reviewJudge(name: string, description: string, prompt: string): Promise<{ approved: boolean; reason: string }> {
@@ -133,14 +137,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    const supabaseAdmin = createAdminClient();
+    const isPremium = await checkPremium(supabaseAdmin, user.id);
+    const charLimits = getCharLimits(isPremium);
+
     const inputError = validateInputs([
-      { value: name, field: '판사 이름', max: 5 },
-      { value: speech_style, field: '말투 스타일', max: 200 },
-      { value: q1, field: '답변1', max: 100 },
-      { value: q2, field: '답변2', max: 100 },
-      { value: q3, field: '답변3', max: 100 },
-      { value: q4, field: '답변4', max: 100 },
-      { value: q5, field: '답변5', max: 100 },
+      { value: name, field: '판사 이름', max: charLimits.judgeName },
+      { value: speech_style, field: '말투 스타일', max: charLimits.speechStyle },
+      { value: q1, field: '답변1', max: charLimits.judgeAnswer },
+      { value: q2, field: '답변2', max: charLimits.judgeAnswer },
+      { value: q3, field: '답변3', max: charLimits.judgeAnswer },
+      { value: q4, field: '답변4', max: charLimits.judgeAnswer },
+      { value: q5, field: '답변5', max: charLimits.judgeAnswer },
     ]);
     if (inputError) {
       return new Response(
@@ -158,8 +166,6 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...getCorsHeaders(req), 'Content-Type': 'application/json' } }
       );
     }
-
-    const supabaseAdmin = createAdminClient();
 
     // Step 2: Ensure profile exists
     await supabaseAdmin.from('profiles').upsert(
@@ -179,7 +185,7 @@ Deno.serve(async (req) => {
     // Step 4: Generate judge prompt
     const { prompt, description } = await generateJudgePrompt({
       name, speechStyle: speech_style, q1, q2, q3, q4, q5,
-    });
+    }, isPremium);
 
     // Step 5: Immediate AI review
     const review = await reviewJudge(name, description, prompt);

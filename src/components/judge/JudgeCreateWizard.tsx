@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Sparkles, AlertTriangle, Coins } from 'lucide-react';
+import { useStore } from '@/store/useStore';
+import { getCharLimits } from '@/lib/limits';
 
 interface WizardStep {
   question: string;
@@ -74,6 +76,8 @@ interface JudgeCreateWizardProps {
 }
 
 export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCreateWizardProps) {
+  const isPremium = useStore((s) => s.isPremium);
+  const limits = getCharLimits(isPremium);
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [speechStyle, setSpeechStyle] = useState('');
@@ -161,12 +165,14 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
                 <input
                   className="input-field text-lg"
                   placeholder="예: 냉철한 판사님"
-                  maxLength={5}
+                  maxLength={limits.judgeName ?? undefined}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoFocus
                 />
-                <p className="text-caption text-gray-400 text-right mt-1">{name.length}/5</p>
+                {limits.judgeName && (
+                  <p className="text-caption text-gray-400 text-right mt-1">{name.length}/{limits.judgeName}</p>
+                )}
               </div>
             ) : isSpeechStep ? (
               <div>
@@ -177,11 +183,13 @@ export default function JudgeCreateWizard({ onComplete, isSubmitting }: JudgeCre
                 <textarea
                   className="textarea-field h-32"
                   placeholder={'예: 부산 사투리를 쓰고, "아이가~ 이건 니 잘못이다 카이~" 같은 말투. 항상 반말로 직설적으로 말하고, 판결 끝에 "알겠나?" 를 붙인다.'}
-                  maxLength={200}
+                  maxLength={limits.speechStyle ?? undefined}
                   value={speechStyle}
                   onChange={(e) => setSpeechStyle(e.target.value)}
                 />
-                <p className="text-caption text-gray-400 text-right mt-1">{speechStyle.length}/200</p>
+                {limits.speechStyle && (
+                  <p className="text-caption text-gray-400 text-right mt-1">{speechStyle.length}/{limits.speechStyle}</p>
+                )}
               </div>
             ) : (
               <div>

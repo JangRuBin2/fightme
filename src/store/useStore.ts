@@ -16,7 +16,9 @@ interface AppState {
   userId: string | null;
   nickname: string | null;
   isLoggedIn: boolean;
+  isPremium: boolean;
   setAuth: (userId: string, nickname: string | null) => void;
+  setPremium: (value: boolean) => void;
   clearAuth: () => void;
 
   // Tokens
@@ -57,10 +59,12 @@ export const useStore = create<AppState>()(
       userId: null,
       nickname: null,
       isLoggedIn: false,
+      isPremium: false,
       setAuth: (userId, nickname) =>
         set({ userId, nickname, isLoggedIn: true }),
+      setPremium: (value) => set({ isPremium: value }),
       clearAuth: () =>
-        set({ userId: null, nickname: null, isLoggedIn: false, tokenBalance: 0 }),
+        set({ userId: null, nickname: null, isLoggedIn: false, isPremium: false, tokenBalance: 0 }),
 
       // Tokens
       tokenBalance: 0,
@@ -107,6 +111,7 @@ export const useStore = create<AppState>()(
         userId: state.userId,
         nickname: state.nickname,
         isLoggedIn: state.isLoggedIn,
+        isPremium: state.isPremium,
         tokenBalance: state.tokenBalance,
         theme: state.theme,
         currentFight: state.currentFight,
