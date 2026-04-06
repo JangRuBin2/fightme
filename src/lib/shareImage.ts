@@ -52,7 +52,7 @@ function wrapText(
   maxWidth: number,
 ): string[] {
   const lines: string[] = [];
-  const chars = [...text];
+  const chars = Array.from(text);
   let currentLine = '';
 
   for (const char of chars) {

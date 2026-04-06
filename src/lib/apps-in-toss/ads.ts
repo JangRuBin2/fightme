@@ -26,6 +26,13 @@ export function loadRewardedAd(adGroupId: string): Promise<AdLoadResult> {
         onEvent: (event) => {
           if (event.type === 'loaded') {
             resolve({ type: 'success', adType: 'rewarded' });
+          } else if (event.type === 'failed' || event.type === 'error') {
+            resolve({
+              type: 'error',
+              adType: 'rewarded',
+              errorCode: 'AD_LOAD_FAILED',
+              errorMessage: `Ad load failed: ${event.type}`,
+            });
           }
         },
         onError: (error) => {
@@ -53,6 +60,27 @@ export function loadRewardedAd(adGroupId: string): Promise<AdLoadResult> {
 // 보상형 광고 표시 (event-based -> Promise 래핑, userEarnedReward 감지)
 export function showRewardedAd(adGroupId: string): Promise<AdShowResult> {
   return new Promise((resolve) => {
+    // Check showAppsInTossAdMob support separately from load support
+    try {
+      if (!GoogleAdMob.showAppsInTossAdMob.isSupported()) {
+        resolve({
+          type: 'error',
+          adType: 'rewarded',
+          errorCode: 'SDK_NOT_AVAILABLE',
+          errorMessage: 'showAppsInTossAdMob not supported',
+        });
+        return;
+      }
+    } catch {
+      resolve({
+        type: 'error',
+        adType: 'rewarded',
+        errorCode: 'SDK_NOT_AVAILABLE',
+        errorMessage: 'SDK not available',
+      });
+      return;
+    }
+
     let rewarded = false;
     let resolved = false;
 

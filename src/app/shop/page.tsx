@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Coins, Crown, Sparkles, Play, Loader2 } from 'lucide-react';
+import { Coins, Crown, Sparkles, Play, Loader2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useTokens } from '@/hooks/useTokens';
 import { useIap } from '@/hooks/useIap';
@@ -91,14 +91,6 @@ export default function ShopPage() {
     <div className="px-5 pb-24">
       {/* Header */}
       <div className="pt-12 pb-6">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-gray-500 mb-4"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="text-body2">뒤로</span>
-        </button>
-
         <h1 className="text-h1 text-gray-900">상점</h1>
         <p className="text-body2 text-gray-500 mt-1">
           토큰을 충전하고 더 많은 판결을 받아보세요

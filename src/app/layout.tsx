@@ -2,10 +2,12 @@
 
 import './globals.css';
 import { useEffect, lazy, Suspense } from 'react';
+import { usePathname } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { useSessionSync } from '@/hooks/useSessionSync';
 import HamburgerMenu from '@/components/layout/HamburgerMenu';
 import Footer from '@/components/layout/Footer';
+import { isAppsInTossEnvironment, closeMiniApp } from '@/lib/apps-in-toss/sdk';
 
 const DebugPanel = lazy(() => import('@/components/debug/DebugPanel'));
 const IS_DEBUG = process.env.NEXT_PUBLIC_DEBUG === 'true';
@@ -17,11 +19,28 @@ export default function RootLayout({
 }) {
   const theme = useStore((s) => s.theme);
   const isProcessing = useStore((s) => s.isProcessing);
+  const pathname = usePathname();
   useSessionSync();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  // 토스 환경에서 홈 화면의 네이티브 뒤로가기 → 앱 종료
+  useEffect(() => {
+    if (!isAppsInTossEnvironment()) return;
+
+    const handlePopState = () => {
+      const currentPath = window.location.pathname;
+      const isHome = currentPath === '/' || currentPath === '/index.html';
+      if (isHome) {
+        closeMiniApp();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [pathname]);
 
   return (
     <html lang="ko" data-theme={theme}>

@@ -132,6 +132,8 @@ html[data-theme='neon-fight'] {
 html {
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
+  /* pan-x pan-y prevents pinch-zoom; manipulation allows it so we avoid it */
+  touch-action: pan-x pan-y;
 }
 
 /* ── Safe area padding utilities ── */
@@ -171,6 +173,7 @@ html {
     @apply font-sans antialiased;
     overscroll-behavior-y: contain;
     transition: background-color 0.3s, color 0.3s;
+    touch-action: pan-x pan-y;
   }
 
   /* Prevent horizontal scroll in WebView (only on html, not body - to avoid blocking scroll layer) */

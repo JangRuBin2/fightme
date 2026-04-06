@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Swords, Clock, Inbox, ArrowLeft } from 'lucide-react';
+import { Swords, Clock, Inbox } from 'lucide-react';
 import ShareButton from '@/components/shared/ShareButton';
 import { getUserFights } from '@/lib/api/fights';
 import { useStore } from '@/store/useStore';
@@ -61,13 +61,6 @@ export default function MyFightsPage() {
     <div className="px-5 pb-24">
       {/* Header */}
       <div className="pt-16 pb-4">
-        <button
-          className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
-          onClick={() => router.push('/my/')}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          MY
-        </button>
         <h1 className="text-h2 text-gray-900">내 판결문</h1>
         <p className="text-body2 text-gray-500 mt-1">
           총 {fights.length}건 (승소 {winCount} / 패소 {loseCount})

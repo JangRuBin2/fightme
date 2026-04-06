@@ -37,11 +37,12 @@ export async function checkPremiumStatus(): Promise<boolean> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
-  const { data, error } = await supabase
+  const { data: rawData, error } = await supabase
     .from('profiles')
     .select('is_premium')
     .eq('id', user.id)
     .single();
+  const data = rawData as { is_premium: boolean } | null;
 
   if (error || !data) return false;
   return data.is_premium === true;

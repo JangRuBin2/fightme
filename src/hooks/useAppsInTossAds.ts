@@ -21,12 +21,14 @@ interface UseAppsInTossAdsReturn {
 
 export function useAppsInTossAds(): UseAppsInTossAdsReturn {
   const [adState, setAdState] = useState<AdState>('idle');
-  const isAvailable = typeof window !== 'undefined' && isAdMobSupported();
   const setTokenBalance = useStore((s) => s.setTokenBalance);
+
+  // 매 호출 시점에 지원 여부 확인 (초기화 시점 고정 방지)
+  const checkAvailable = () => typeof window !== 'undefined' && isAdMobSupported();
 
   const handleLoadRewardedAd = useCallback(
     async (adGroupId: AdGroupId = AD_GROUP_IDS.FIGHT_REWARDED): Promise<boolean> => {
-      if (!isAvailable) return false;
+      if (!checkAvailable()) return false;
 
       setAdState('loading');
       const result = await loadRewardedAd(adGroupId);
@@ -39,17 +41,17 @@ export function useAppsInTossAds(): UseAppsInTossAdsReturn {
       setAdState('error');
       return false;
     },
-    [isAvailable]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const handleShowRewardedAd = useCallback(
     async (adGroupId: AdGroupId = AD_GROUP_IDS.FIGHT_REWARDED): Promise<AdShowResult> => {
-      if (!isAvailable) {
+      if (!checkAvailable()) {
         return {
           type: 'error',
           adType: 'rewarded',
           errorCode: 'SDK_NOT_AVAILABLE',
-          errorMessage: 'AdMob not supported in this environment',
+          errorMessage: '토스 앱에서만 광고를 시청할 수 있습니다',
         };
       }
 
@@ -59,35 +61,39 @@ export function useAppsInTossAds(): UseAppsInTossAdsReturn {
       setAdState('idle');
       return result;
     },
-    [isAvailable]
+    [] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // Watch ad and receive token reward
+  // Throws on edge function failure so callers can show the error message
   const watchAdForTokenReward = useCallback(
     async (adGroupId: AdGroupId = AD_GROUP_IDS.FIGHT_REWARDED): Promise<boolean> => {
       const loaded = await handleLoadRewardedAd(adGroupId);
-      if (!loaded) return false;
+      if (!loaded) {
+        throw new Error('광고를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+      }
 
       const result = await handleShowRewardedAd(adGroupId);
 
-      if (result.type === 'success' && result.rewarded) {
-        // Call token-ad-reward edge function
-        try {
-          const tokenResult = await watchAdForTokens();
-          setTokenBalance(tokenResult.tokenBalance);
-          return true;
-        } catch {
-          return false;
-        }
+      if (result.type === 'error') {
+        throw new Error(result.errorMessage || '광고 재생 중 오류가 발생했습니다.');
       }
 
+      if (result.type === 'success' && result.rewarded) {
+        // Throws if edge function fails (rate limit, network, etc.)
+        const tokenResult = await watchAdForTokens();
+        setTokenBalance(tokenResult.tokenBalance);
+        return true;
+      }
+
+      // 광고는 봤지만 보상 조건 미충족 (일찍 닫음 등)
       return false;
     },
     [handleLoadRewardedAd, handleShowRewardedAd, setTokenBalance]
   );
 
   return {
-    isAvailable,
+    isAvailable: checkAvailable(),
     adState,
     loadRewardedAd: handleLoadRewardedAd,
     showRewardedAd: handleShowRewardedAd,

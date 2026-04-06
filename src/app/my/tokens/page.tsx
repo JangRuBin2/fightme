@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft,
   Coins,
   TrendingDown,
   TrendingUp,
@@ -79,13 +78,6 @@ export default function TokenHistoryPage() {
     <div className="px-5 pb-24">
       {/* Header */}
       <div className="pt-16 pb-4">
-        <button
-          className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
-          onClick={() => router.push('/my/')}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          MY
-        </button>
         <h1 className="text-h2 text-gray-900">토큰 내역</h1>
       </div>
 

@@ -2,7 +2,7 @@
 // SDK는 @apps-in-toss/web-framework에서 import
 // 내부적으로 ReactNativeWebView.postMessage() 브릿지로 네이티브와 통신
 
-import { appLogin } from '@apps-in-toss/web-framework';
+import { appLogin, closeView } from '@apps-in-toss/web-framework';
 
 import { z } from 'zod';
 import type {
@@ -30,6 +30,15 @@ export function isAppsInTossEnvironment(): boolean {
   if (typeof window === 'undefined') return false;
   const userAgent = navigator.userAgent.toLowerCase();
   return userAgent.includes('toss') || userAgent.includes('appintoss');
+}
+
+// 미니앱 종료 (토스 환경에서만 동작)
+export async function closeMiniApp(): Promise<void> {
+  try {
+    await closeView();
+  } catch {
+    // 토스 환경 외에서는 무시
+  }
 }
 
 // 토스 로그인 (OAuth2 인가코드 획득)

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Plus,
-  ArrowLeft,
   TrendingUp,
   ThumbsUp,
   Inbox,
@@ -118,13 +117,6 @@ export default function MyJudgesPage() {
     <div className="px-5 pb-24">
       {/* Header */}
       <div className="pt-16 pb-4">
-        <button
-          className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
-          onClick={() => router.push('/my/')}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          MY
-        </button>
         <h1 className="text-h2 text-gray-900">내 판사</h1>
         <p className="text-body2 text-gray-500 mt-1">
           내가 만든 판사 {judges.length}명

@@ -26,11 +26,12 @@ export default function LoginPage() {
     if (!user) throw new Error('Failed to get user after login');
 
     // Fetch profile for nickname & token balance
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('nickname, token')
       .eq('id', user.id)
       .single();
+    const profile = profileData as { nickname: string | null; token: number } | null;
 
     setAuth(user.id, profile?.nickname ?? null);
     setTokenBalance(profile?.token ?? 0);

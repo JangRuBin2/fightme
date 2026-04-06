@@ -12,12 +12,22 @@ interface AdModalProps {
 export default function AdModal({ onClose }: AdModalProps) {
   const { watchAdForTokenReward, adState, isAvailable } = useAppsInTossAds();
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleWatchAd = async () => {
-    const result = await watchAdForTokenReward();
-    if (result) {
-      setSuccess(true);
-      setTimeout(() => onClose(), 1500);
+    setError(null);
+    try {
+      const result = await watchAdForTokenReward();
+      if (result) {
+        setSuccess(true);
+        setTimeout(() => onClose(), 1500);
+      } else {
+        // 광고는 봤지만 보상 미지급 (광고를 끝까지 보지 않음)
+        setError('광고를 끝까지 시청해야 토큰이 지급됩니다.');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '오류가 발생했습니다';
+      setError(message);
     }
   };
 
@@ -78,7 +88,11 @@ export default function AdModal({ onClose }: AdModalProps) {
               )}
             </button>
 
-            {!isAvailable && (
+            {error && (
+              <p className="text-caption text-primary-500 mt-3">{error}</p>
+            )}
+
+            {!isAvailable && !error && (
               <p className="text-caption text-gray-400 mt-3">
                 토스 앱에서만 광고를 시청할 수 있습니다
               </p>

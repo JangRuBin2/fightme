@@ -127,7 +127,8 @@ export async function voteJudge(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Unauthorized');
 
-  const { data, error } = await supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rawData, error } = await (supabase as any)
     .from('judge_votes')
     .upsert(
       {
@@ -139,6 +140,7 @@ export async function voteJudge(
     )
     .select()
     .single();
+  const data = rawData as JudgeVote | null;
 
   if (error) throw new Error(error.message);
 

@@ -1,21 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-
 export default function PrivacyPage() {
-  const router = useRouter();
-
   return (
     <div className="px-5 pb-24">
       <div className="pt-16 pb-6">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          뒤로
-        </button>
         <h1 className="text-h2 text-gray-900">개인정보처리방침</h1>
         <p className="text-caption text-gray-400 mt-1">시행일: 2026년 3월 17일</p>
       </div>

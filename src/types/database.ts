@@ -41,15 +41,15 @@ export interface OriginalVerdict {
   opponent_fault: number | null;
   comment: string | null;
   verdict_detail: string | null;
-  defense: DefenseData | null;
+  defense?: DefenseData | null;
 }
 
 export interface Fight {
   id: string;
   user_id: string;
   judge_id: string;
-  user_name: string | null;
-  opponent_name: string | null;
+  user_name?: string | null;
+  opponent_name?: string | null;
   user_claim: string;
   opponent_claim: string;
   user_fault: number | null;
@@ -57,9 +57,10 @@ export interface Fight {
   comment: string | null;
   verdict_detail: string | null;
   stage: 'INITIAL' | 'APPEAL';
-  defense: DefenseData | null;
-  original_verdict: OriginalVerdict | null;
+  defense?: DefenseData | null;
+  original_verdict?: OriginalVerdict | null;
   is_revealed: boolean;
+  detail_unlocked?: boolean;
   created_at: string;
 }
 
@@ -100,30 +101,35 @@ export interface Database {
         Row: Profile;
         Insert: Omit<Profile, 'created_at' | 'updated_at'>;
         Update: Partial<Omit<Profile, 'id' | 'created_at'>>;
+        Relationships: [];
       };
       judges: {
         Row: Judge;
         Insert: Omit<Judge, 'id' | 'score' | 'usage_count' | 'created_at'>;
         Update: Partial<Omit<Judge, 'id' | 'created_at'>>;
+        Relationships: [];
       };
       fights: {
         Row: Fight;
         Insert: Omit<Fight, 'id' | 'created_at'>;
         Update: Partial<Omit<Fight, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [];
       };
       judge_votes: {
         Row: JudgeVote;
         Insert: Omit<JudgeVote, 'id' | 'created_at'>;
         Update: Partial<Pick<JudgeVote, 'is_upvote'>>;
+        Relationships: [];
       };
       token_logs: {
         Row: TokenLog;
         Insert: Omit<TokenLog, 'id' | 'created_at'>;
-        Update: never;
+        Update: Record<string, never>;
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
-    Enums: Record<string, never>;
+    Enums: Record<string, string[]>;
   };
 }

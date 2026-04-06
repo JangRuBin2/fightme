@@ -1,7 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 
 const ARTICLES = [
   {
@@ -52,18 +50,9 @@ const ARTICLES = [
 ] as const;
 
 export default function TermsPage() {
-  const router = useRouter();
-
   return (
     <div className="px-5 pb-24">
       <div className="pt-16 pb-4">
-        <button
-          className="flex items-center gap-1 text-body2 text-gray-500 mb-3"
-          onClick={() => router.back()}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          뒤로
-        </button>
         <h1 className="text-h2 text-gray-900">서비스 이용약관</h1>
       </div>
 
